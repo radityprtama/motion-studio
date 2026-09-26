@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import hypot, isfinite
 from types import MappingProxyType
 from typing import Mapping
 
@@ -96,3 +96,146 @@ def File(
         "label": label_text,
     }
     return Component(parts, Box(left, top, left + width, top + height), {"center": (x, y), "top": (x, top), "bottom": (x, top + height)})
+
+
+def Arrow(
+    *, start: tuple[float, float], end: tuple[float, float], style: str = "blueprint",
+    name: str | None = None, color: str | None = None, head_size: float = 22,
+) -> Component:
+    """A connector whose shaft and two arrowhead strokes can draw separately."""
+    if len(start) != 2 or len(end) != 2 or not all(isfinite(v) for v in (*start, *end)):
+        raise ValueError("Arrow endpoints must be finite (x, y) points")
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    distance = hypot(dx, dy)
+    _number(distance, "Arrow length")
+    _number(head_size, "Arrow head_size")
+    colors = get_style(style)
+    ink = color or colors.accent
+    prefix = _prefix(name, "arrow", *start)
+    ux, uy = dx / distance, dy / distance
+    wing_x, wing_y = -uy, ux
+    base_x, base_y = end[0] - ux * head_size, end[1] - uy * head_size
+    left_wing = (base_x + wing_x * head_size * .55, base_y + wing_y * head_size * .55)
+    right_wing = (base_x - wing_x * head_size * .55, base_y - wing_y * head_size * .55)
+    parts = {
+        "shaft": Path(x=start[0], y=start[1], points=((0, 0), (dx, dy)), stroke=ink, stroke_width=colors.component_stroke, name=f"{prefix}:shaft"),
+        "head_left": Path(x=end[0], y=end[1], points=((left_wing[0] - end[0], left_wing[1] - end[1]), (0, 0)), stroke=ink, stroke_width=colors.component_stroke, name=f"{prefix}:head_left"),
+        "head_right": Path(x=end[0], y=end[1], points=((right_wing[0] - end[0], right_wing[1] - end[1]), (0, 0)), stroke=ink, stroke_width=colors.component_stroke, name=f"{prefix}:head_right"),
+    }
+    xs = (start[0], end[0], left_wing[0], right_wing[0])
+    ys = (start[1], end[1], left_wing[1], right_wing[1])
+    return Component(parts, Box(min(xs) - 3, min(ys) - 3, max(xs) + 3, max(ys) + 3), {"entry": start, "exit": end})
+
+
+def CommitNode(
+    *, x: float, y: float, label: str, style: str = "blueprint",
+    name: str | None = None, radius: float = 30, highlighted: bool = False,
+    label_side: str = "right",
+) -> Component:
+    """A graph node with a separate ring, core, and measured annotation."""
+    _number(radius, "CommitNode radius", 8)
+    if label_side not in ("left", "right"):
+        raise ValueError("CommitNode label_side must be left or right")
+    colors = get_style(style)
+    prefix = _prefix(name, "commit", x, y)
+    label_x = x + radius + 24 if label_side == "right" else x - radius - 24
+    label_anchor = "left" if label_side == "right" else "right"
+    label_text = Text(label, x=label_x, y=y - 17, role="annotation", anchor=label_anchor, color=colors.accent if highlighted else colors.primary, name=f"{prefix}:label")
+    _fit_label(label, label_text, colors, 320, "CommitNode")
+    label_bounds = layout_text(label_text, colors).bounds
+    parts = {
+        "ring": Circle(x=x, y=y, radius=radius, fill=colors.background, stroke=colors.accent if highlighted else colors.primary, stroke_width=colors.component_stroke + 1, name=f"{prefix}:ring"),
+        "core": Circle(x=x, y=y, radius=max(5, radius * .22), fill=colors.accent if highlighted else colors.primary, name=f"{prefix}:core"),
+        "label": label_text,
+    }
+    bounds = Box(min(x - radius - 3, label_bounds[0]), min(y - radius - 3, label_bounds[1]), max(x + radius + 3, label_bounds[2]), max(y + radius + 3, label_bounds[3]))
+    return Component(parts, bounds, {"center": (x, y), "entry": (x, y - radius), "exit": (x, y + radius)})
+
+
+def CommitGraph(
+    *, records: tuple[tuple[str, str, str | None], ...],
+    positions: Mapping[str, tuple[float, float]], style: str = "blueprint",
+    name: str = "graph", radius: float = 30,
+) -> Component:
+    """An ordered history with explicit parent links and independently addressable parts."""
+    if not records:
+        raise ValueError("CommitGraph requires at least one record")
+    ids = [item[0] for item in records]
+    if len(set(ids)) != len(ids):
+        raise ValueError("CommitGraph has duplicate IDs")
+    if set(positions) != set(ids):
+        raise ValueError(f"CommitGraph positions need IDs {ids!r}; got {list(positions)!r}")
+    colors = get_style(style)
+    prefix = _prefix(name, "graph", 0, 0)
+    parts: dict[str, Element] = {}
+    anchors: dict[str, tuple[float, float]] = {}
+    seen: set[str] = set()
+    for index, (item_id, label, parent_id) in enumerate(records):
+        if not item_id.strip():
+            raise ValueError("CommitGraph IDs cannot be blank")
+        if index == 0 and parent_id is not None:
+            raise ValueError("CommitGraph first record must be a root with no parent")
+        if index > 0 and parent_id not in seen:
+            raise ValueError(f"CommitGraph record {item_id!r} has unknown parent {parent_id!r}")
+        x, y = positions[item_id]
+        if not isfinite(x) or not isfinite(y):
+            raise ValueError(f"CommitGraph position for {item_id!r} must be finite")
+        anchors[f"node:{item_id}"] = (x, y)
+        if parent_id is not None:
+            parent_x, parent_y = positions[parent_id]
+            dx, dy = x - parent_x, y - parent_y
+            if dx == 0 and dy == 0:
+                raise ValueError(f"CommitGraph record {item_id!r} overlaps its parent")
+            points = ((0, 0), (dx, dy)) if dx == 0 else ((0, 0), (dx, 0), (dx, dy))
+            branch = parent_id != records[index - 1][0]
+            parts[f"connector:{item_id}"] = Path(x=parent_x, y=parent_y, points=points, stroke=colors.accent if branch else colors.primary, stroke_width=colors.component_stroke + 1, name=f"{prefix}:connector:{item_id}")
+        seen.add(item_id)
+    bounds_list = []
+    for index, (item_id, label, parent_id) in enumerate(records):
+        x, y = positions[item_id]
+        branch = index > 0 and parent_id != records[index - 1][0]
+        has_right_branch = any(
+            later_parent == item_id and positions[later_id][0] > x
+            for later_id, _, later_parent in records[index + 1:]
+        )
+        label_side = "left" if has_right_branch or (branch and x > positions[parent_id][0]) else "right"
+        node = CommitNode(x=x, y=y, label=label, style=style, name=f"{prefix}:node:{item_id}", radius=radius, highlighted=branch, label_side=label_side)
+        bounds_list.append(node.bounds)
+        for key, element in node.parts.items():
+            parts[f"node:{item_id}:{key}"] = element
+    xs = [box.left for box in bounds_list] + [box.right for box in bounds_list] + [point[0] for point in positions.values()]
+    ys = [box.top for box in bounds_list] + [box.bottom for box in bounds_list] + [point[1] for point in positions.values()]
+    return Component(parts, Box(min(xs), min(ys), max(xs), max(ys)), anchors)
+
+
+def Timeline(
+    *, labels: tuple[str, ...], x: float, y: float, gap: float,
+    direction: str = "vertical", style: str = "blueprint", name: str | None = None,
+) -> Component:
+    """An ordered sequence of ticks and labels along one axis."""
+    if not labels:
+        raise ValueError("Timeline needs at least one label")
+    _number(gap, "Timeline gap")
+    if direction not in ("vertical", "horizontal"):
+        raise ValueError("Timeline direction must be vertical or horizontal")
+    colors = get_style(style)
+    prefix = _prefix(name, "timeline", x, y)
+    parts: dict[str, Element] = {}
+    anchors = {}
+    if len(labels) > 1:
+        end = (0, gap * (len(labels) - 1)) if direction == "vertical" else (gap * (len(labels) - 1), 0)
+        parts["spine"] = Path(x=x, y=y, points=((0, 0), end), stroke=colors.secondary, stroke_width=colors.component_stroke, name=f"{prefix}:spine")
+    label_boxes = []
+    for index, label in enumerate(labels):
+        px = x + (index * gap if direction == "horizontal" else 0)
+        py = y + (index * gap if direction == "vertical" else 0)
+        anchors[f"item:{index}"] = (px, py)
+        parts[f"tick:{index}"] = Circle(x=px, y=py, radius=9, fill=colors.accent, name=f"{prefix}:tick:{index}")
+        text_x, text_y = (px + 34, py - 15) if direction == "vertical" else (px, py + 28)
+        label_text = Text(label, x=text_x, y=text_y, role="label", anchor="left" if direction == "vertical" else "center", color=colors.primary, name=f"{prefix}:label:{index}")
+        _fit_label(label, label_text, colors, 300, "Timeline")
+        label_boxes.append(layout_text(label_text, colors).bounds)
+        parts[f"label:{index}"] = label_text
+    xs = [x - 9, x + (len(labels) - 1) * gap + 9 if direction == "horizontal" else x + 9]
+    ys = [y - 9, y + (len(labels) - 1) * gap + 9 if direction == "vertical" else y + 9]
+    return Component(parts, Box(min(xs + [box[0] for box in label_boxes]), min(ys + [box[1] for box in label_boxes]), max(xs + [box[2] for box in label_boxes]), max(ys + [box[3] for box in label_boxes])), anchors)

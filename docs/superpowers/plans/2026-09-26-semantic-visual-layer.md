@@ -65,11 +65,11 @@ This session executes inline under the user's existing build authorization; no d
 
 **Files:** Modify `src/motion/components.py`, `src/motion/__init__.py`; extend `tests/unit/test_components.py`.
 
-- [ ] **Step 1: Write failing tests.** Arrow `entry`/`exit` match endpoints; CommitNode has `ring`, `core`, and `label`; CommitGraph rejects duplicate/missing IDs and unknown parents, and exposes one connector for each nonroot record; Timeline yields ordered anchors in both orientations.
-- [ ] **Step 2: Run `uv run pytest tests/unit/test_components.py -q`.** Expected: missing factory names or contracts.
-- [ ] **Step 3: Implement Arrow and CommitNode.** Both return named Path/Circle/Text parts, measured label fit, bounds, and anchors. Arrow accepts start/end points; CommitNode accepts x/y/label/radius and style.
-- [ ] **Step 4: Implement CommitGraph and Timeline.** Graph accepts ordered `(id,label,parent_id)` records with caller positions; each connector is a Path between named node anchors and branches use accent color. Timeline accepts labels, orientation, gap, and origin; it returns individually addressable tick/label parts. Reject unbounded labels and nonpositive gaps.
-- [ ] **Step 5: Run all tests, render a tiny graph in both styles, inspect, and commit.**
+- [x] **Step 1: Write failing tests.** Arrow `entry`/`exit` match endpoints; CommitNode has `ring`, `core`, and `label`; CommitGraph rejects duplicate/missing IDs and unknown parents, and exposes one connector for each nonroot record; Timeline yields ordered anchors in both orientations.
+- [x] **Step 2: Run `uv run pytest tests/unit/test_components.py -q`.** Expected: missing factory names or contracts.
+- [x] **Step 3: Implement Arrow and CommitNode.** Both return named Path/Circle/Text parts, measured label fit, bounds, and anchors. Arrow accepts start/end points; CommitNode accepts x/y/label/radius and style.
+- [x] **Step 4: Implement CommitGraph and Timeline.** Graph accepts ordered `(id,label,parent_id)` records with caller positions; each connector is a Path between named node anchors and branches use accent color. Timeline accepts labels, orientation, gap, and origin; it returns individually addressable tick/label parts. Reject unbounded labels and nonpositive gaps.
+- [x] **Step 5: Run all tests, render a tiny graph in both styles, inspect, and commit.**
 
 ## Task 5: Reference film and visual revision
 
