@@ -77,8 +77,25 @@ BLUEPRINT = Style(
     annotation_size=36,
 )
 
+BLUEPRINT_PAPER = Style(
+    name="blueprint-paper",
+    background="#F2EBDD",
+    primary="#0D1D2B",
+    secondary="#527B93",
+    accent="#A16A36",
+    sans_font=_FONT_DIR / "IBMPlexSans-Regular.ttf",
+    mono_font=_FONT_DIR / "IBMPlexMono-Regular.ttf",
+    headline_size=84,
+    body_size=50,
+    annotation_size=36,
+    grid_color="#527B93",
+    grid_opacity=0.45,
+)
+
 
 def get_style(name: str) -> Style:
     if name == "blueprint":
         return BLUEPRINT
-    raise ValueError(f"Unknown style {name!r}; available style: blueprint")
+    if name == "blueprint-paper":
+        return BLUEPRINT_PAPER
+    raise ValueError(f"Unknown style {name!r}; available styles: blueprint, blueprint-paper")

@@ -44,13 +44,13 @@ def _paint_background(context: cairo.Context, scene: PortraitScene, style: Style
     for x in range(0, scene.width + 1, 90):
         context.move_to(x + 0.5, 0)
         context.line_to(x + 0.5, scene.height)
-        _set_color(context, style.secondary, random.uniform(0.105, 0.18))
+        _set_color(context, style.grid_color, random.uniform(0.105, 0.18) * style.grid_opacity)
         context.set_line_width(2.5 if x % 360 else 3.5)
         context.stroke()
     for y in range(0, scene.height + 1, 90):
         context.move_to(0, y + 0.5)
         context.line_to(scene.width, y + 0.5)
-        _set_color(context, style.secondary, random.uniform(0.105, 0.18))
+        _set_color(context, style.grid_color, random.uniform(0.105, 0.18) * style.grid_opacity)
         context.set_line_width(2.5 if y % 360 else 3.5)
         context.stroke()
 

@@ -55,11 +55,11 @@ This session executes inline under the user's existing build authorization; no d
 
 **Files:** Modify `src/motion/style.py`, `src/motion/renderer.py`; create `src/motion/components.py`, `tests/unit/test_components.py`.
 
-- [ ] **Step 1: Write failing tests.** `get_style("blueprint-paper")` returns warm background/dark ink; a `Folder` has `body`, `tab`, and `label` named parts, finite bounds, and a `tab_center` anchor. Rendering the same folder geometry in navy and paper produces different pixels with equal part positions.
-- [ ] **Step 2: Run `uv run pytest tests/unit/test_components.py -q`.** Expected: missing style and component types.
-- [ ] **Step 3: Implement style tokens.** Add `blueprint-paper`; configure grid color/opacity and component stroke tokens. Keep the existing navy grid and colors unchanged. Make `_paint_background` consume tokens.
-- [ ] **Step 4: Implement `Component(parts,bounds,anchors).add_to(scene)`.** Use immutable mappings/order. Implement Folder with a stroked body, tab Path, and label Text; implement File with body, fold Path, and label. Part names derive from an explicit prefix or deterministic component ID argument, and `add_to` simply loops through parts calling `scene.add`.
-- [ ] **Step 5: Render one folder at 360x640 in each style, inspect the images, run all tests, and commit.**
+- [x] **Step 1: Write failing tests.** `get_style("blueprint-paper")` returns warm background/dark ink; a `Folder` has `body`, `tab`, and `label` named parts, finite bounds, and a `tab_center` anchor. Rendering the same folder geometry in navy and paper produces different pixels with equal part positions.
+- [x] **Step 2: Run `uv run pytest tests/unit/test_components.py -q`.** Expected: missing style and component types.
+- [x] **Step 3: Implement style tokens.** Add `blueprint-paper`; configure grid color/opacity and component stroke tokens. Keep the existing navy grid and colors unchanged. Make `_paint_background` consume tokens.
+- [x] **Step 4: Implement `Component(parts,bounds,anchors).add_to(scene)`.** Use immutable mappings/order. Implement Folder with a stroked body, tab Path, and label Text; implement File with body, fold Path, and label. Part names derive from an explicit prefix or deterministic component ID argument, and `add_to` simply loops through parts calling `scene.add`.
+- [x] **Step 5: Render one folder at 360x640 in each style, inspect the images, run all tests, and commit.**
 
 ## Task 4: Diagram components
 
