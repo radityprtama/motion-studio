@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from math import pi
+from math import pi, radians
 from random import Random
 
 import cairocffi as cairo
@@ -52,14 +52,16 @@ def _paint_background(context: cairo.Context, scene: PortraitScene, style: Style
         context.stroke()
 
 
-def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style) -> None:
+def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False) -> None:
     element = state.element
+    x = 0.0 if local else state.x
+    y = 0.0 if local else state.y
     if isinstance(element, Rectangle):
-        left = state.x - element.width / 2 if element.anchor == "center" else state.x
-        top = state.y - element.height / 2 if element.anchor == "center" else state.y
+        left = x - element.width / 2 if element.anchor == "center" else x
+        top = y - element.height / 2 if element.anchor == "center" else y
         context.rectangle(left, top, element.width, element.height)
     elif isinstance(element, Circle):
-        context.arc(state.x, state.y, element.radius, 0, 2 * pi)
+        context.arc(x, y, element.radius, 0, 2 * pi)
     else:
         raise TypeError(f"Unsupported geometry {type(element).__name__}")
     fill = element.fill
@@ -110,7 +112,7 @@ def _wrap_lines(value: str, font: ImageFont.FreeTypeFont, max_width: float | Non
     return lines
 
 
-def _draw_text(context: cairo.Context, state: EvaluatedElement, style: Style) -> None:
+def _draw_text(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False) -> None:
     element = state.element
     assert isinstance(element, Text)
     font_path, size = style.font_for(element.role)
@@ -119,6 +121,8 @@ def _draw_text(context: cairo.Context, state: EvaluatedElement, style: Style) ->
     font = ImageFont.truetype(font_path, size)
     lines = _wrap_lines(element.value, font, element.max_width)
     line_step = size * element.line_height
+    x = 0.0 if local else state.x
+    y = 0.0 if local else state.y
     _set_color(context, element.color or style.primary, state.opacity)
     for index, line in enumerate(lines):
         if not line:
@@ -135,12 +139,12 @@ def _draw_text(context: cairo.Context, state: EvaluatedElement, style: Style) ->
             data[row * stride : row * stride + width] = source[row * width : (row + 1) * width]
         surface = cairo.ImageSurface(cairo.FORMAT_A8, width, height, data, stride)
         if element.anchor == "left":
-            left = state.x
+            left = x
         elif element.anchor == "right":
-            left = state.x - width
+            left = x - width
         else:
-            left = state.x - width / 2
-        context.mask_surface(surface, left, state.y + index * line_step)
+            left = x - width / 2
+        context.mask_surface(surface, left, y + index * line_step)
 
 
 def render_frame(
@@ -167,10 +171,15 @@ def render_frame(
             continue
         context.save()
         try:
+            transformed = state.scale_x != 1 or state.scale_y != 1 or state.rotation != 0
+            if transformed:
+                context.translate(state.x, state.y)
+                context.rotate(radians(state.rotation))
+                context.scale(state.scale_x, state.scale_y)
             if isinstance(state.element, Text):
-                _draw_text(context, state, style)
+                _draw_text(context, state, style, local=transformed)
             else:
-                _draw_geometry(context, state, style)
+                _draw_geometry(context, state, style, local=transformed)
         except Exception as exc:
             label = state.element.name or type(state.element).__name__
             raise RenderError(f'Failed to render element "{label}" at t={time:.3f}s: {exc}') from exc

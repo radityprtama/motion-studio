@@ -19,6 +19,9 @@ class Element:
     y: float
     name: str | None = None
     opacity: float = 1.0
+    scale_x: float = 1.0
+    scale_y: float = 1.0
+    rotation: float = 0.0
     layer: Layer = "content"
     z_index: int = 0
 
@@ -27,6 +30,10 @@ class Element:
             raise ValueError("element coordinates must be finite")
         if not isfinite(self.opacity) or not 0 <= self.opacity <= 1:
             raise ValueError("element opacity must be between 0 and 1")
+        if not isfinite(self.scale_x) or not isfinite(self.scale_y) or self.scale_x <= 0 or self.scale_y <= 0:
+            raise ValueError("element scales must be finite and positive")
+        if not isfinite(self.rotation):
+            raise ValueError("element rotation must be finite degrees")
         if self.layer not in LAYER_ORDER:
             raise ValueError(f"Unknown layer {self.layer!r}; choose from {LAYER_ORDER}")
         if self.name is not None and not self.name.strip():

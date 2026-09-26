@@ -16,6 +16,9 @@ class EvaluatedElement:
     x: float
     y: float
     opacity: float
+    scale_x: float
+    scale_y: float
+    rotation: float
 
 
 class PortraitScene:
@@ -112,6 +115,9 @@ class PortraitScene:
                 x=self._property_at(element, "x", time),
                 y=self._property_at(element, "y", time),
                 opacity=self._property_at(element, "opacity", time),
+                scale_x=self._property_at(element, "scale_x", time),
+                scale_y=self._property_at(element, "scale_y", time),
+                rotation=self._property_at(element, "rotation", time),
             )
             for _, element in ordered
         ]
