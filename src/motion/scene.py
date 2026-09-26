@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
 
 from .animation import Animation
+from .composition import Node, expand
 from .primitives import LAYER_ORDER, Element
 
 
@@ -75,19 +76,35 @@ class PortraitScene:
         self._elements.append(element)
         return element
 
-    def animate(self, element: Element, animation: Animation) -> None:
-        if element not in self._elements:
-            raise ValueError("animate requires an element already added to the scene")
-        for channel in animation.channels:
-            track = self._tracks.get((element, channel), [])
-            for existing in track:
-                if animation.start < existing.start + existing.duration and existing.start < animation.start + animation.duration:
-                    label = element.name or type(element).__name__
-                    raise ValueError(f"Animations overlap on {label}.{channel}")
-        for channel in animation.channels:
-            track = self._tracks.setdefault((element, channel), [])
-            track.append(animation)
-            track.sort(key=lambda item: item.start)
+    def _attach_many(self, assignments: list[tuple[Element, Animation]]) -> None:
+        staged = {key: track.copy() for key, track in self._tracks.items()}
+        for element, animation in assignments:
+            if element not in self._elements:
+                raise ValueError("animate requires an element already added to the scene")
+            for channel in animation.channels:
+                track = staged.setdefault((element, channel), [])
+                for existing in track:
+                    if animation.start < existing.start + existing.duration and existing.start < animation.start + animation.duration:
+                        label = element.name or type(element).__name__
+                        raise ValueError(f"Animations overlap on {label}.{channel}")
+                track.append(animation)
+                track.sort(key=lambda item: item.start)
+        self._tracks = staged
+
+    def animate(self, element: Element, animation: Node) -> None:
+        leaves, _ = expand(animation)
+        self._attach_many([(element, leaf) for leaf in leaves])
+
+    def stagger(self, elements: tuple[Element, ...] | list[Element], animation: Animation, *, start: float = 0, step: float = 0.1) -> None:
+        if not isfinite(start) or start < 0 or not isfinite(step) or step < 0:
+            raise ValueError("stagger start and step must be finite and non-negative")
+        if len(set(elements)) != len(elements):
+            raise ValueError("stagger elements must be unique")
+        assignments = [
+            (element, replace(animation, start=start + index * step + animation.start))
+            for index, element in enumerate(elements)
+        ]
+        self._attach_many(assignments)
 
     def _property_at(self, element: Element, channel: str, time: float) -> float:
         base = getattr(element, channel)

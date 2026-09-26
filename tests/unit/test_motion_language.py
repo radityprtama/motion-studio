@@ -1,6 +1,7 @@
 import pytest
 
-from motion.animation import Rotate, Scale, ease
+from motion.animation import FadeIn, FadeOut, Move, Rotate, Scale, ease
+from motion.composition import Parallel, Sequence, expand
 from motion.primitives import Circle
 from motion.scene import PortraitScene
 
@@ -29,3 +30,40 @@ def test_invalid_scale_rejected() -> None:
         Circle(x=0, y=0, radius=1, scale_x=0)
     with pytest.raises(ValueError, match="positive"):
         Scale(from_x=1, to_x=0)
+
+
+def test_sequence_and_parallel_offsets() -> None:
+    sequence = Sequence(
+        FadeIn(duration=0.4),
+        Move(duration=0.7, from_y=80, to_y=0),
+        start=1,
+    )
+    leaves, end = expand(sequence)
+    assert [leaf.start for leaf in leaves] == [1.0, 1.4]
+    assert end == pytest.approx(2.1)
+    parallel = Parallel(
+        FadeIn(start=0.2),
+        Move(start=0.1, from_y=80, to_y=0),
+        start=1,
+    )
+    leaves, end = expand(parallel)
+    assert [leaf.start for leaf in leaves] == [1.2, 1.1]
+    assert end == pytest.approx(2.2)
+
+
+def test_nested_composition_and_atomic_failure() -> None:
+    nested = Sequence(
+        Parallel(FadeIn(duration=0.4), Move(duration=0.7, from_y=10, to_y=0)),
+        FadeOut(duration=0.3),
+        start=1,
+    )
+    leaves, end = expand(nested)
+    assert [leaf.start for leaf in leaves] == [1, 1, 1.7]
+    assert end == 2
+    scene = PortraitScene(duration=3)
+    first = scene.add(Circle(x=0, y=0, radius=1))
+    second = scene.add(Circle(x=10, y=0, radius=1))
+    scene.animate(first, FadeIn(start=0, duration=1))
+    with pytest.raises(ValueError, match="overlap"):
+        scene.stagger((second, first), FadeIn(duration=0.7), step=0.1)
+    assert scene.elements_at(0.2)[1].opacity == 1
