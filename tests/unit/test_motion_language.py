@@ -2,7 +2,8 @@ import pytest
 
 from motion.animation import FadeIn, FadeOut, Move, Rotate, Scale, ease
 from motion.composition import Parallel, Sequence, expand
-from motion.primitives import Circle
+from motion.primitives import Circle, Rectangle
+from motion.renderer import render_frame
 from motion.scene import PortraitScene
 
 
@@ -30,6 +31,14 @@ def test_invalid_scale_rejected() -> None:
         Circle(x=0, y=0, radius=1, scale_x=0)
     with pytest.raises(ValueError, match="positive"):
         Scale(from_x=1, to_x=0)
+
+
+def test_render_transform_order_is_translate_rotate_scale() -> None:
+    scene = PortraitScene(duration=1)
+    scene.add(Rectangle(x=540, y=960, width=200, height=80, fill="#D9A66F", scale_x=2, rotation=90))
+    frame = render_frame(scene, 0, width=90, height=160)
+    assert frame.getpixel((45, 95))[:3] == (217, 166, 111)
+    assert frame.getpixel((50, 80))[:3] != (217, 166, 111)
 
 
 def test_sequence_and_parallel_offsets() -> None:
