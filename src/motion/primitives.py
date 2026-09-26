@@ -77,22 +77,31 @@ class Circle(Element):
 @dataclass(frozen=True, eq=False)
 class Text(Element):
     value: str
-    role: Literal["headline", "body", "annotation"] = "body"
+    role: Literal["display", "headline", "title", "body", "caption", "annotation", "label"] = "body"
     color: str | None = None
     max_width: float | None = None
     anchor: Literal["left", "center", "right"] = "center"
-    line_height: float = 1.18
+    line_height: float | None = None
+    font_size: int | None = None
+    font_weight: Literal["regular", "semibold"] | None = None
+    letter_spacing: float = 0.0
 
     def __post_init__(self) -> None:
         super().__post_init__()
         if not isinstance(self.value, str):
             raise TypeError("Text value must be a string")
-        if self.role not in ("headline", "body", "annotation"):
-            raise ValueError("Text role must be headline, body, or annotation")
+        if self.role not in ("display", "headline", "title", "body", "caption", "annotation", "label"):
+            raise ValueError(f"Unknown Text role {self.role!r}")
         if self.max_width is not None and (not isfinite(self.max_width) or self.max_width <= 0):
             raise ValueError("Text max_width must be finite and positive")
-        if not isfinite(self.line_height) or self.line_height <= 0:
+        if self.line_height is not None and (not isfinite(self.line_height) or self.line_height <= 0):
             raise ValueError("Text line_height must be finite and positive")
+        if self.font_size is not None and (not isinstance(self.font_size, int) or self.font_size <= 0):
+            raise ValueError("Text font_size must be a positive integer")
+        if self.font_weight not in (None, "regular", "semibold"):
+            raise ValueError("Text font_weight must be regular or semibold")
+        if not isfinite(self.letter_spacing):
+            raise ValueError("Text letter_spacing must be finite")
         if self.anchor not in ("left", "center", "right"):
             raise ValueError("Text anchor must be left, center, or right")
 

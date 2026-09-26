@@ -7,13 +7,14 @@ from math import pi, radians
 from random import Random
 
 import cairocffi as cairo
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 from .animation import MaskReveal, Reveal
 from .camera import CameraState
 from .primitives import Circle, Path as MotionPath, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
+from .typography import layout_text, line_mask
 
 
 class RenderError(RuntimeError):
@@ -121,22 +122,7 @@ def _element_bounds(state: EvaluatedElement, style: Style, *, local: bool) -> tu
         padding = element.stroke_width / 2 + 1
         return x + min(xs) - padding, y + min(ys) - padding, x + max(xs) + padding, y + max(ys) + padding
     if isinstance(element, Text):
-        font_path, size = style.font_for(element.role)
-        if not font_path.is_file():
-            raise FileNotFoundError(f"Bundled font {font_path} is missing; reinstall motion-studio")
-        font = ImageFont.truetype(font_path, size)
-        lines = _wrap_lines(element.value, font, element.max_width)
-        widths = [max(0, font.getbbox(line)[2] - font.getbbox(line)[0]) for line in lines if line]
-        widest = max(widths, default=0)
-        if element.anchor == "left":
-            left = x
-        elif element.anchor == "right":
-            left = x - widest
-        else:
-            left = x - widest / 2
-        line_step = size * element.line_height
-        height = (len(lines) - 1) * line_step + size
-        return left, y, left + widest, y + height
+        return layout_text(element, style, local=local, x=x, y=y).bounds
     raise TypeError(f"Unsupported element {type(element).__name__}")
 
 
@@ -190,71 +176,26 @@ def _apply_camera(context: cairo.Context, scene: PortraitScene, camera: CameraSt
     context.translate(-camera.x, -camera.y)
 
 
-def _wrap_lines(value: str, font: ImageFont.FreeTypeFont, max_width: float | None) -> list[str]:
-    if max_width is None:
-        return value.split("\n")
-    lines: list[str] = []
-    for paragraph in value.split("\n"):
-        if not paragraph:
-            lines.append("")
-            continue
-        line = ""
-        for word in paragraph.split():
-            proposal = f"{line} {word}" if line else word
-            if font.getlength(proposal) <= max_width:
-                line = proposal
-                continue
-            if line:
-                lines.append(line)
-                line = ""
-            if font.getlength(word) <= max_width:
-                line = word
-                continue
-            chunk = ""
-            for character in word:
-                if chunk and font.getlength(chunk + character) > max_width:
-                    lines.append(chunk)
-                    chunk = character
-                else:
-                    chunk += character
-            line = chunk
-        lines.append(line)
-    return lines
-
-
 def _draw_text(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False) -> None:
     element = state.element
     assert isinstance(element, Text)
-    font_path, size = style.font_for(element.role)
-    if not font_path.is_file():
-        raise FileNotFoundError(f"Bundled font {font_path} is missing; reinstall motion-studio")
-    font = ImageFont.truetype(font_path, size)
-    lines = _wrap_lines(element.value, font, element.max_width)
-    line_step = size * element.line_height
     x = 0.0 if local else state.x
     y = 0.0 if local else state.y
-    _set_color(context, element.color or style.primary, state.opacity)
-    for index, line in enumerate(lines):
-        if not line:
+    layout = layout_text(element, style, local=local, x=x, y=y)
+    token = style.text_token(element.role)
+    _set_color(context, element.color or token.color or style.primary, state.opacity)
+    for line in layout.lines:
+        if not line.value:
             continue
-        bbox = font.getbbox(line)
-        width = max(1, bbox[2] - bbox[0])
-        height = max(1, bbox[3] - bbox[1])
-        mask = Image.new("L", (width, height))
-        ImageDraw.Draw(mask).text((-bbox[0], -bbox[1]), line, fill=255, font=font)
+        mask = line_mask(line, layout.font, layout.letter_spacing)
+        width, height = mask.size
         stride = cairo.ImageSurface.format_stride_for_width(cairo.FORMAT_A8, width)
         data = bytearray(stride * height)
         source = mask.tobytes()
         for row in range(height):
             data[row * stride : row * stride + width] = source[row * width : (row + 1) * width]
         surface = cairo.ImageSurface(cairo.FORMAT_A8, width, height, data, stride)
-        if element.anchor == "left":
-            left = x
-        elif element.anchor == "right":
-            left = x - width
-        else:
-            left = x - width / 2
-        context.mask_surface(surface, left, y + index * line_step)
+        context.mask_surface(surface, line.left, line.top)
 
 
 def render_frame(

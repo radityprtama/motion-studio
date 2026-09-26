@@ -45,11 +45,11 @@ This session executes inline under the user's existing build authorization; no d
 
 **Files:** Create `src/motion/typography.py`, `tests/unit/test_typography.py`; modify `src/motion/primitives.py`, `src/motion/style.py`, `src/motion/renderer.py`; add bundled semibold font.
 
-- [ ] **Step 1: Write failing tests.** Check all seven roles resolve, explicit size/weight/letter spacing override tokens, `measure_text` preserves newlines, wraps within `max_width`, positions left/center/right lines against the same x, and render bounds agree with the measured visible rectangle within one pixel at design resolution. Record the current snapshot hash at one timestamp before the change.
-- [ ] **Step 2: Run `uv run pytest tests/unit/test_typography.py -q`.** Expected: missing roles and shared layout function.
-- [ ] **Step 3: Resolve typography tokens.** Add regular/semibold font paths and role tokens in `Style`. Keep existing headline/body/annotation font sizes 84/50/36 and regular weight. Add `Text.font_size`, `font_weight`, `letter_spacing` optional overrides and the new roles; validate positive size/line height and finite spacing. Bundle IBM Plex Sans Semibold under the same OFL license; fail clearly if a requested font file is absent.
-- [ ] **Step 4: Unify measure and draw.** Implement `layout_text(text,style) -> TextLayout` with Pillow `getlength`/`getbbox`, preserved newlines, measured word and character wrapping, line origins, and visible bounds. Use its line masks in `_draw_text` and its bounds in `_element_bounds`; render per glyph only when nonzero letter spacing. Preserve the old zero-spacing mask placement and role defaults.
-- [ ] **Step 5: Run targeted and full tests, then render the baseline snapshot at the recorded timestamp.** Expected: same hash and all tests pass. Commit.
+- [x] **Step 1: Write failing tests.** Check all seven roles resolve, explicit size/weight/letter spacing override tokens, `layout_text` preserves newlines, wraps within `max_width`, positions right-aligned lines, and render bounds agree with the measured visible rectangle at design resolution. Record the current snapshot hash at one timestamp before the change.
+- [x] **Step 2: Run `uv run pytest tests/unit/test_typography.py -q`.** Expected: missing roles and shared layout function.
+- [x] **Step 3: Resolve typography tokens.** Add regular/semibold font paths and role tokens in `Style`. Keep existing headline/body/annotation font sizes 84/50/36 and regular weight. Add `Text.font_size`, `font_weight`, `letter_spacing` optional overrides and the new roles; validate positive size/line height and finite spacing. Bundle IBM Plex Sans and Mono Semibold under the same OFL license; fail clearly if a requested font file is absent.
+- [x] **Step 4: Unify measure and draw.** Implement `layout_text(text,style) -> TextLayout` with Pillow `getlength`/`getbbox`, preserved newlines, measured word and character wrapping, line origins, and visible bounds. Use its line masks in `_draw_text` and its bounds in `_element_bounds`; render per glyph only when nonzero letter spacing. Preserve the old zero-spacing mask placement and role defaults.
+- [x] **Step 5: Run targeted and full tests, then render the baseline snapshot at the recorded timestamp.** Expected: same hash and all tests pass. Commit.
 
 ## Task 3: Style treatments and first component proof
 
