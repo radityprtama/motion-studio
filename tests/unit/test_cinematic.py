@@ -2,8 +2,10 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from motion.cli import load_scene
+from motion.effects import finish_frame
 from motion.primitives import ParticleEmitter, RadialLight
 from motion.renderer import render_frame
 from motion.scene import PortraitScene
@@ -61,3 +63,14 @@ def test_particle_frame_is_random_access() -> None:
     at_two = render_frame(scene, 2, width=90, height=160).tobytes()
     render_frame(scene, 0.25, width=90, height=160)
     assert render_frame(scene, 2, width=90, height=160).tobytes() == at_two
+
+
+def test_finishing_is_seeded_and_preserves_alpha() -> None:
+    style = get_style("cinematic")
+    base = Image.new("RGBA", (90, 160), (12, 24, 36, 255))
+    first = finish_frame(base, style=style, seed=42)
+    assert first.tobytes() == finish_frame(base, style=style, seed=42).tobytes()
+    assert first.tobytes() != finish_frame(base, style=style, seed=43).tobytes()
+    assert first.getpixel((45, 80))[3] == 255
+    assert first.getpixel((0, 0))[3] == 255
+    assert finish_frame(base, style=get_style("blueprint"), seed=42).tobytes() == base.tobytes()

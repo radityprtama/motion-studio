@@ -11,6 +11,7 @@ from PIL import Image
 
 from .animation import MaskReveal, Reveal
 from .camera import CameraState
+from .effects import finish_frame
 from .primitives import Circle, ParticleEmitter, Path as MotionPath, RadialLight, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
@@ -297,4 +298,4 @@ def render_frame(
     surface.write_to_png(output)
     output.seek(0)
     with Image.open(output) as image:
-        return image.convert("RGBA")
+        return finish_frame(image.convert("RGBA"), style=style, seed=scene.seed)

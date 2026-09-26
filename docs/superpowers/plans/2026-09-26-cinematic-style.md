@@ -50,10 +50,10 @@ This session executes inline under the user's build authorization. No delegated 
 
 **Files:** Create `src/motion/effects.py`; modify `src/motion/style.py`, `src/motion/renderer.py`; extend `tests/unit/test_cinematic.py`.
 
-- [ ] Add failing tests: applying finishing twice to the same frame/seed gives equal bytes, changing seed changes grain, and Blueprint frames remain unchanged. Check output RGBA alpha stays 255.
-- [ ] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing effect functions.
-- [ ] Generate a reduced-resolution static grain tile with `Random(seed)` and a radial vignette mask; upscale with Pillow and blend into RGB at style-defined low strengths. Cache immutable masks by seed/size/parameters only. Apply finishing after Cairo output conversion for Cinematic style.
-- [ ] Render before/after 360×640 stills, inspect subtlety, run tests, and commit.
+- [x] Add failing tests: applying finishing twice to the same frame/seed gives equal bytes, changing seed changes grain, and Blueprint frames remain unchanged. Check output RGBA alpha stays 255.
+- [x] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing effect functions.
+- [x] Generate a reduced-resolution static grain tile with `Random(seed)` and a radial vignette mask; upscale with Pillow and blend into RGB at style-defined low strengths. Cache immutable masks by seed/size/parameters only. Apply finishing after Cairo output conversion for Cinematic style.
+- [x] Render before/after 360×640 stills, inspect subtlety, run tests, and commit.
 
 ## Task 4: Orb and Crowd factories
 
