@@ -10,6 +10,7 @@ import cairocffi as cairo
 from PIL import Image, ImageDraw, ImageFont
 
 from .animation import MaskReveal, Reveal
+from .camera import CameraState
 from .primitives import Circle, Path as MotionPath, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
@@ -180,6 +181,15 @@ def _clip_mask(context: cairo.Context, state: EvaluatedElement) -> None:
     context.set_matrix(matrix)
 
 
+def _apply_camera(context: cairo.Context, scene: PortraitScene, camera: CameraState) -> None:
+    if camera.x == scene.width / 2 and camera.y == scene.height / 2 and camera.zoom == 1 and camera.rotation == 0:
+        return
+    context.translate(scene.width / 2, scene.height / 2)
+    context.rotate(-radians(camera.rotation))
+    context.scale(camera.zoom, camera.zoom)
+    context.translate(-camera.x, -camera.y)
+
+
 def _wrap_lines(value: str, font: ImageFont.FreeTypeFont, max_width: float | None) -> list[str]:
     if max_width is None:
         return value.split("\n")
@@ -266,11 +276,14 @@ def render_frame(
     context = cairo.Context(surface)
     context.scale(output_width / scene.width, output_height / scene.height)
     _paint_background(context, scene, style)
+    camera = scene.camera.evaluate(time)
     for state in scene.elements_at(time):
         if state.opacity <= 0 or (state.reveal is not None and state.reveal_progress <= 0):
             continue
         context.save()
         try:
+            if state.element.layer in ("environment", "content", "foreground"):
+                _apply_camera(context, scene, camera)
             if isinstance(state.reveal, MaskReveal):
                 _clip_mask(context, state)
             transformed = state.scale_x != 1 or state.scale_y != 1 or state.rotation != 0

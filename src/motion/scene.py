@@ -7,6 +7,7 @@ from math import isfinite
 from pathlib import Path
 
 from .animation import Animation, DrawPath, MaskReveal, Reveal
+from .camera import Camera
 from .composition import Node, expand
 from .primitives import LAYER_ORDER, Element, Path as MotionPath
 
@@ -56,6 +57,7 @@ class PortraitScene:
         self.safe_top = safe_top
         self.safe_bottom = safe_bottom
         self.content_margin = content_margin
+        self.camera = Camera(x=width / 2, y=height / 2)
         self._elements: list[Element] = []
         self._names: set[str] = set()
         self._tracks: dict[tuple[Element, str], list[Animation]] = {}
