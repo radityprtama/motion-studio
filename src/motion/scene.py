@@ -9,6 +9,7 @@ from pathlib import Path
 from .animation import Animation, DrawPath, MaskReveal, Reveal
 from .camera import Camera
 from .composition import Node, expand
+from .layout import Box
 from .primitives import LAYER_ORDER, Element, Path as MotionPath
 
 
@@ -70,6 +71,10 @@ class PortraitScene:
             self.width - self.content_margin,
             self.height - self.safe_bottom,
         )
+
+    @property
+    def safe_box(self) -> Box:
+        return Box(*self.content_box)
 
     def add(self, element: Element) -> Element:
         if element in self._elements:

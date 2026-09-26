@@ -3,11 +3,13 @@
 from .animation import DrawPath, FadeIn, FadeOut, MaskReveal, Move, Reveal, Rotate, Scale
 from .camera import Camera
 from .composition import Parallel, Sequence
+from .layout import Box, grid, place, stack
 from .primitives import Circle, Path, Rectangle, Text
 from .scene import PortraitScene
 
 __all__ = [
-    "Camera", "Circle", "DrawPath", "FadeIn", "FadeOut", "MaskReveal", "Move", "Parallel",
+    "Box", "Camera", "Circle", "DrawPath", "FadeIn", "FadeOut", "MaskReveal", "Move", "Parallel",
     "Path", "PortraitScene", "Rectangle", "Reveal", "Rotate", "Scale", "Sequence", "Text",
+    "grid", "place", "stack",
 ]
 __version__ = "0.1.0"

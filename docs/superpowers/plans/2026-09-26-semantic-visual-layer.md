@@ -35,11 +35,11 @@ This session executes inline under the user's existing build authorization; no d
 
 **Files:** Create `src/motion/layout.py`, `tests/unit/test_layout.py`; modify `src/motion/scene.py`, `src/motion/__init__.py`.
 
-- [ ] **Step 1: Write failing tests.** Assert `Box(90,120,990,1700).center == (540,910)`, `inset(10)` returns `(100,130,980,1690)`, `place(...,100,50,"center") == (490,885)`, vertical stack with two 100px items and 20px gap centers inside the box, and an impossible grid raises `ValueError` naming the available box.
-- [ ] **Step 2: Run `uv run pytest tests/unit/test_layout.py -q`.** Expected: import failure for `motion.layout`.
-- [ ] **Step 3: Implement immutable geometry.** Define `Box(left,top,right,bottom)` with finite ordered edges, computed width/height/center, inset, and nine named anchor points. Implement `place(box,width,height,anchor,dx=0,dy=0) -> (left,top)`, `stack(box,sizes,gap,direction="vertical",align="center") -> tuple[Box,...]`, and `grid(box,rows,columns,gap_x=0,gap_y=0,padding=0) -> tuple[Box,...]`. Validate every requested size and reject overflow. Expose `PortraitScene.safe_box` as `Box(*content_box)`.
-- [ ] **Step 4: Run `uv run pytest tests/unit/test_layout.py -q` and `uv run pytest -q`.** Expected: all pass; `content_box` stays a tuple for old consumers.
-- [ ] **Step 5: Commit layout source, tests, and exports.**
+- [x] **Step 1: Write failing tests.** Assert `Box(90,120,990,1700).center == (540,910)`, `inset(10)` returns `(100,130,980,1690)`, `place(...,100,50,"center") == (490,885)`, vertical stack with two 100px items and 20px gap centers inside the box, and an impossible grid raises `ValueError` naming the available box.
+- [x] **Step 2: Run `uv run pytest tests/unit/test_layout.py -q`.** Expected: import failure for `motion.layout`.
+- [x] **Step 3: Implement immutable geometry.** Define `Box(left,top,right,bottom)` with finite ordered edges, computed width/height/center, inset, and nine named anchor points. Implement `place(box,width,height,anchor,dx=0,dy=0) -> (left,top)`, `stack(box,sizes,gap,direction="vertical",align="center") -> tuple[Box,...]`, and `grid(box,rows,columns,gap_x=0,gap_y=0,padding=0) -> tuple[Box,...]`. Validate every requested size and reject overflow. Expose `PortraitScene.safe_box` as `Box(*content_box)`.
+- [x] **Step 4: Run `uv run pytest tests/unit/test_layout.py -q` and `uv run pytest -q`.** Expected: all pass; `content_box` stays a tuple for old consumers.
+- [x] **Step 5: Commit layout source, tests, and exports.**
 
 ## Task 2: Shared measured typography
 
