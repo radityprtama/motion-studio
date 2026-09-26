@@ -16,7 +16,7 @@ uv sync --extra dev
 uv run motion --help
 ```
 
-The project bundles IBM Plex Sans and IBM Plex Mono under the [SIL Open Font License](src/motion/assets/fonts/OFL.txt). The files come from the official IBM Plex repository: [Sans Regular](https://github.com/IBM/plex/blob/master/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Regular.ttf), [Mono Regular](https://github.com/IBM/plex/blob/master/packages/plex-mono/fonts/complete/ttf/IBMPlexMono-Regular.ttf), and [license](https://github.com/IBM/plex/blob/master/LICENSE.txt). Keeping fonts with the package makes text placement independent of host font discovery.
+The project bundles IBM Plex Sans and IBM Plex Mono, in Regular and SemiBold weights, under the [SIL Open Font License](src/motion/assets/fonts/OFL.txt). The files come from the [official IBM Plex repository](https://github.com/IBM/plex/tree/master/packages). Keeping fonts with the package makes text placement independent of host font discovery.
 
 ## Render the first scene
 
@@ -36,6 +36,16 @@ The second editable example, [Git graph](examples/blueprint/git_graph.py), draws
 uv run motion preview examples/blueprint/git_graph.py --output .build/git-graph-preview.mp4
 uv run motion still examples/blueprint/git_graph.py --time 4.5 --output .build/git-graph-still.png
 ```
+
+The [18-second Git history film](examples/blueprint/git_history.py) uses named Folder, File, and CommitGraph parts to show the project becoming a snapshot and then a branching history. Its caption and heading stay fixed while the diagram receives one subtle camera move:
+
+```bash
+uv run motion preview examples/blueprint/git_history.py --output .build/git_history/preview.mp4
+uv run motion still examples/blueprint/git_history.py --time 13.5 --resolution 360x640 --output .build/git_history/branch.png
+uv run motion render examples/blueprint/git_history.py --resolution 1080x1920 --fps 30 --output .build/git_history/final.mp4
+```
+
+The preview is 360×640 at 15 FPS; the final render is 1080×1920 at 30 FPS. The editable program creates every frame through Cairo and Pillow. Media under `.build/` is ignored by Git. [paper_process.py](examples/blueprint/paper_process.py) uses the same component vocabulary with the warm paper Blueprint treatment.
 
 To verify the final video:
 
@@ -60,6 +70,24 @@ scene.animate(node, FadeIn(start=1, duration=0.5))
 Save the file with a module-level variable named `scene`. The CLI loads that scene definition. The Python API also exposes `scene.render_still(...)`, `scene.render_preview(...)`, and `scene.render(...)`.
 
 `PortraitScene` uses 1080×1920 design coordinates by default. Its safe area starts 120 pixels below the top and ends 220 pixels above the bottom, with 90-pixel side margins. `scene.content_box` returns `(left, top, right, bottom)`. The renderer scales the design space for previews, so scene code keeps one composition.
+
+`scene.safe_box` exposes that area as a `Box`. Pure `place`, `stack`, and `grid` helpers calculate positions in design coordinates and reject overflow. Text roles are `display`, `headline`, `title`, `body`, `caption`, `annotation`, and `label`. Text uses bundled font metrics for wrapping, alignment, visible bounds, and drawing. Explicit `font_size`, `font_weight`, `line_height`, and `letter_spacing` override style defaults.
+
+## Semantic components and styles
+
+Components are small factories for ordinary scene primitives. Each returns named `parts`, a `bounds` box, and `anchors` for connectors. Add the parts to a scene and animate them with the same tracks used for any primitive:
+
+```python
+from motion import DrawPath, FadeIn, Folder, PortraitScene
+
+scene = PortraitScene(duration=3, style="blueprint", seed=42)
+folder = Folder(x=540, y=900, width=620, label="project", name="project")
+folder.add_to(scene)
+scene.animate(folder.parts["body"], FadeIn(start=0.2, duration=0.5))
+scene.animate(folder.parts["tab"], DrawPath(start=0.5, duration=0.6))
+```
+
+`Folder`, `File`, `Arrow`, `CommitNode`, `CommitGraph`, and `Timeline` are available. A `CommitGraph` takes ordered `(id, label, parent_id)` records and explicit positions. Its `parts` include `connector:<id>` and `node:<id>:ring/core/label`, so path and node timing remain visible in source. `blueprint` is the deep navy treatment; `blueprint-paper` uses warm paper and dark ink. Semantic components take a style name, while the scene chooses the matching background treatment.
 
 Elements are drawn in `background`, `environment`, `content`, `foreground`, `overlay`, and `captions` order. Within a layer, `z_index` and then addition order decide which element is in front. Elements are immutable definitions. `Move`, `FadeIn`, and `FadeOut` calculate values from the requested timestamp and do not mutate a previous frame. Overlapping animations of the same property are rejected.
 
@@ -99,6 +127,6 @@ Python scene definition
 
 For motion design, start with the narrative purpose, choose a visual concept, write the smallest scene that explains it, inspect opening and resolved stills, inspect preview motion, revise, then render final. A successful import or MP4 encode does not prove that the composition works. The [first-slice design](docs/superpowers/specs/2026-09-26-motion-studio-foundation-design.md) records the renderer contract and visual decisions.
 
-The current working foundation has Rectangle, Circle, Text, Path, direct-time transforms and camera, animation composition, reveals, stills, previews, final video export, portrait safe areas, Blueprint tokens, and deterministic frame tests. The staged v0.1 roadmap adds layout, semantic components, and more scene patterns; a restrained Cinematic style; contact sheets and audio; filesystem memory; typed storyboard and scene plans; a provider-neutral harness; a comprehensive agent skill; and a 15–20 second Git-history reference film. Those parts should be built only after their preceding visual examples have been inspected.
+The working foundation now includes portrait layout, measured typography, semantic Folder/File/Arrow/CommitGraph/Timeline components, two Blueprint treatments, and the inspected Git history film. The remaining v0.1 roadmap includes more primitives and scene patterns; a restrained Cinematic style; contact-sheet CLI and audio; filesystem memory; typed storyboard and scene plans; a provider-neutral harness; and a comprehensive agent skill. Build each visual feature with a render/inspect/revise loop.
 
 Run the test suite with `uv run pytest -q`.

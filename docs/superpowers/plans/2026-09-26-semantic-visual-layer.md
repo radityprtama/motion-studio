@@ -75,18 +75,18 @@ This session executes inline under the user's existing build authorization; no d
 
 **Files:** Create `examples/blueprint/git_history.py`, `examples/blueprint/paper_process.py`; modify `README.md`.
 
-- [ ] **Step 1: Implement and render beats 1–2.** Make a seed-42, 18s PortraitScene. Keep a fixed headline/step label; place Folder and three Files within `safe_box`. Render stills at 0, 2, 4, 6s at 360x640 and inspect spacing and readability.
-- [ ] **Step 2: Implement beats 3–4.** Use explicit component handles with existing Fade/Move/Scale/DrawPath tracks; transform the visual focus from snapshot frame to first node, then draw ordered commits. Render 7.5, 9, 10.5, and 12s stills and revise collisions.
-- [ ] **Step 3: Implement beats 5–6.** Draw one amber branch, reveal its node, make one camera settle, hold the final diagram with caption. Render 13.5, 15, 16.5, 18s stills. Keep the final caption above the bottom exclusion zone.
-- [ ] **Step 4: Add a short paper example using Folder/File/Arrow or Timeline.** Render one matching semantic arrangement in both styles and inspect whether hierarchy survives.
-- [ ] **Step 5: Render preview and contact sheet under `.build/git_history/`.** Run `uv run motion preview examples/blueprint/git_history.py --output .build/git_history/preview.mp4 --overwrite`; render representative stills with `motion still`; build a Pillow contact sheet from those stills. Inspect frames sampled from the encoded preview; revise timing and layout until each beat is legible and transitions remain continuous.
-- [ ] **Step 6: Render final MP4.** Run `uv run motion render examples/blueprint/git_history.py --resolution 1080x1920 --fps 30 --output .build/git_history/final.mp4 --overwrite`; probe with `ffprobe` for H.264, 1080x1920, 30fps, and 18s; decode with ffmpeg to null. Render the same arbitrary timestamp twice around an intervening timestamp and compare SHA-256 hashes.
-- [ ] **Step 7: Run `uv run pytest -q` and `uv build`.** Confirm wheel includes fonts, update README with public component and film commands, and commit the scene/docs/plan state.
+- [x] **Step 1: Implement and render beats 1–2.** Make a seed-42, 18s PortraitScene. Keep a fixed headline/step label; place Folder and three Files within the portrait safe area. Render stills at 0, 2, 4, 6s at 360x640 and inspect spacing and readability.
+- [x] **Step 2: Implement beats 3–4.** Use explicit component handles with existing Fade/Move/DrawPath tracks; transform the visual focus from snapshot frame to first node, then draw ordered commits. Render 7.5, 9, 10.5, and 12s stills and revise collisions.
+- [x] **Step 3: Implement beats 5–6.** Draw one amber branch, reveal its node, make one camera settle, hold the final diagram with caption. Render 13.5, 15, 16.5, 18s stills. Keep the final caption above the bottom exclusion zone.
+- [x] **Step 4: Add a short paper example using Folder and Arrow.** Render it at 360x640 and inspect whether hierarchy survives.
+- [x] **Step 5: Render preview and contact sheet under `.build/git_history/`.** Run `uv run motion preview examples/blueprint/git_history.py --output .build/git_history/preview.mp4 --overwrite`; render representative direct-time stills; build a Pillow contact sheet from those stills. Inspect frames sampled from the encoded preview; revise timing and layout until each beat is legible and transitions remain continuous.
+- [x] **Step 6: Render final MP4.** Run `uv run motion render examples/blueprint/git_history.py --resolution 1080x1920 --fps 30 --output .build/git_history/final.mp4 --overwrite`; probe with `ffprobe` for H.264, 1080x1920, 30fps, and 18s; decode with ffmpeg to null. Render the same arbitrary timestamp twice around an intervening timestamp and compare SHA-256 hashes.
+- [x] **Step 7: Run `uv run pytest -q` and `uv build`.** Confirm wheel includes fonts, update README with public component and film commands, and commit the scene/docs/plan state.
 
 ## Exit review
 
-- [ ] Layout and typography are measured in design coordinates and do not depend on prior frames.
-- [ ] Both Blueprint treatments render the same semantic components.
-- [ ] Named component parts can be animated with ordinary scene tracks.
-- [ ] Preview, stills, contact sheet, and final video have been inspected.
-- [ ] Existing examples remain visually stable and all tests pass.
+- [x] Layout and typography are measured in design coordinates and do not depend on prior frames.
+- [x] Both Blueprint treatments render the same semantic components.
+- [x] Named component parts can be animated with ordinary scene tracks.
+- [x] Preview, stills, contact sheet, and final video have been inspected.
+- [x] Existing examples remain visually stable and all tests pass.
