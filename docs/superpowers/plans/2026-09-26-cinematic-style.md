@@ -68,16 +68,16 @@ This session executes inline under the user's build authorization. No delegated 
 
 **Files:** Create `examples/cinematic/atmospheric_title.py`, `examples/cinematic/crowd_statistic.py`; modify `README.md` and this plan.
 
-- [ ] Build the 8-second atmospheric title with one Orb, sparse ParticleEmitter, short measured text, and one camera push. Render stills at 0/2/4/6/8 seconds; revise hierarchy before encoding.
-- [ ] Build the 7-second 100-person crowd with 17 highlights, a large `17 / 100` statement and explicit count label. Stagger row reveals and use one restrained emphasis. Render key stills and revise visual density.
-- [ ] Render both 360×640 at 15 FPS previews with `motion preview`; sample their encoded frames into contact sheets and inspect continuity and legibility. Render one 1080×1920 at 30 FPS final MP4 only after preview passes.
-- [ ] Probe the final video for H.264/resolution/FPS/duration and decode it. Verify an out-of-order same-time frame hash; recheck the original Blueprint snapshot hash; run `uv run pytest -q` and `uv build`; inspect wheel assets.
-- [ ] Document the style and public APIs in README; commit examples, tests, documentation, and checked plan state.
+- [x] Build the 8-second atmospheric title with one Orb, sparse ParticleEmitter, short measured text, and one camera push. Render stills at 0/2/4/6/8 seconds; inspect hierarchy before encoding.
+- [x] Build the 7-second 100-person crowd with 17 highlights, a large `17 / 100` statement and explicit count label. Stagger row reveals and use one restrained emphasis. Render key stills and inspect visual density.
+- [x] Render both 360×640 at 15 FPS previews with `motion preview`; sample their encoded frames into contact sheets and inspect continuity and legibility. Render one 1080×1920 at 30 FPS final MP4 only after preview passes.
+- [x] Probe the final video for H.264/resolution/FPS/duration and decode it. Verify an out-of-order same-time frame hash; recheck the original Blueprint snapshot hash; run `uv run pytest -q` and `uv build`; inspect wheel assets.
+- [x] Document the style and public APIs in README; commit examples, tests, documentation, and checked plan state.
 
 ## Exit review
 
-- [ ] Cinematic examples read clearly at phone preview size and avoid decorative neon effects.
-- [ ] Particle and finishing output is seeded, bounded, and direct-time.
-- [ ] Blueprint snapshot pixels remain unchanged.
-- [ ] At least one full-resolution Cinematic video renders and decodes.
-- [ ] Tests pass and the package builds.
+- [x] Cinematic examples read clearly at phone preview size and avoid decorative neon effects.
+- [x] Particle and finishing output is seeded, bounded, and direct-time.
+- [x] Blueprint snapshot pixels remain unchanged.
+- [x] At least one full-resolution Cinematic video renders and decodes.
+- [x] Tests pass and the package builds.

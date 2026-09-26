@@ -47,6 +47,14 @@ uv run motion render examples/blueprint/git_history.py --resolution 1080x1920 --
 
 The preview is 360×640 at 15 FPS; the final render is 1080×1920 at 30 FPS. The editable program creates every frame through Cairo and Pillow. Media under `.build/` is ignored by Git. [paper_process.py](examples/blueprint/paper_process.py) uses the same component vocabulary with the warm paper Blueprint treatment.
 
+The Cinematic examples show a different visual language from the same deterministic engine: [atmospheric_title.py](examples/cinematic/atmospheric_title.py) uses a procedural orb and particle field; [crowd_statistic.py](examples/cinematic/crowd_statistic.py) highlights 17 of 100 procedural silhouettes.
+
+```bash
+uv run motion preview examples/cinematic/atmospheric_title.py --output .build/cinematic/atmospheric-preview.mp4
+uv run motion preview examples/cinematic/crowd_statistic.py --output .build/cinematic/crowd-preview.mp4
+uv run motion render examples/cinematic/crowd_statistic.py --resolution 1080x1920 --fps 30 --output .build/cinematic/crowd-final.mp4
+```
+
 To verify the final video:
 
 ```bash
@@ -89,6 +97,8 @@ scene.animate(folder.parts["tab"], DrawPath(start=0.5, duration=0.6))
 
 `Folder`, `File`, `Arrow`, `CommitNode`, `CommitGraph`, and `Timeline` are available. A `CommitGraph` takes ordered `(id, label, parent_id)` records and explicit positions. Its `parts` include `connector:<id>` and `node:<id>:ring/core/label`, so path and node timing remain visible in source. `blueprint` is the deep navy treatment; `blueprint-paper` uses warm paper and dark ink. Semantic components take a style name, while the scene chooses the matching background treatment.
 
+`cinematic` selects a near-black background, subtle seeded grain/vignette, and a muted steel-blue/amber palette. `RadialLight` uses a Cairo gradient; `ParticleEmitter` calculates each particle directly from its explicit seed and requested timestamp. `Orb`, `Person`, and `Crowd` are factories with named parts. `Crowd` accepts a `Box`, count, columns, seed, and highlighted indices. For highlighted people it returns ordinary base parts plus accent overlay parts such as `highlight:16:head`, so a scene can reveal emphasis at a chosen time. The style has no model-generated imagery or frame-to-frame simulation.
+
 Elements are drawn in `background`, `environment`, `content`, `foreground`, `overlay`, and `captions` order. Within a layer, `z_index` and then addition order decide which element is in front. Elements are immutable definitions. `Move`, `FadeIn`, and `FadeOut` calculate values from the requested timestamp and do not mutate a previous frame. Overlapping animations of the same property are rejected.
 
 ## Paths, composition, and camera
@@ -127,6 +137,6 @@ Python scene definition
 
 For motion design, start with the narrative purpose, choose a visual concept, write the smallest scene that explains it, inspect opening and resolved stills, inspect preview motion, revise, then render final. A successful import or MP4 encode does not prove that the composition works. The [first-slice design](docs/superpowers/specs/2026-09-26-motion-studio-foundation-design.md) records the renderer contract and visual decisions.
 
-The working foundation now includes portrait layout, measured typography, semantic Folder/File/Arrow/CommitGraph/Timeline components, two Blueprint treatments, and the inspected Git history film. The remaining v0.1 roadmap includes more primitives and scene patterns; a restrained Cinematic style; contact-sheet CLI and audio; filesystem memory; typed storyboard and scene plans; a provider-neutral harness; and a comprehensive agent skill. Build each visual feature with a render/inspect/revise loop.
+The working foundation now includes portrait layout, measured typography, semantic Blueprint components, a restrained Cinematic style with seeded particles and procedural silhouettes, and the inspected Git history film. The remaining v0.1 roadmap includes more primitives and scene patterns; contact-sheet CLI and audio; filesystem memory; typed storyboard and scene plans; a provider-neutral harness; and a comprehensive agent skill. Build each visual feature with a render/inspect/revise loop.
 
 Run the test suite with `uv run pytest -q`.
