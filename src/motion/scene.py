@@ -116,10 +116,10 @@ class PortraitScene:
             for _, element in ordered
         ]
 
-    def render_still(self, *, time: float, output: str | Path, width: int | None = None, height: int | None = None) -> Path:
+    def render_still(self, *, time: float, output: str | Path, width: int | None = None, height: int | None = None, overwrite: bool = False) -> Path:
         from .export import render_still
 
-        return render_still(self, time=time, output=Path(output), width=width, height=height)
+        return render_still(self, time=time, output=Path(output), width=width, height=height, overwrite=overwrite)
 
     def render_preview(self, *, output: str | Path, width: int = 360, height: int = 640, fps: int = 15, overwrite: bool = False) -> Path:
         from .export import render_video
