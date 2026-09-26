@@ -41,10 +41,10 @@ This session executes inline under the user's build authorization. No delegated 
 
 **Files:** Modify `src/motion/primitives.py`, `src/motion/renderer.py`, `src/motion/__init__.py`; extend `tests/unit/test_cinematic.py`.
 
-- [ ] Add failing tests for `ParticleEmitter(..., seed=42).particles_at(2.5)` equality after `particles_at(0.1)`, bounds/wrap at arbitrary time, count <=400, and rejected negative/non-finite time.
-- [ ] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing ParticleEmitter.
-- [ ] Define immutable Particle descriptors. Generate each starting point/velocity/radius/alpha with local `Random(seed)` in stable index order; evaluate `((base + velocity*t) % extent)` in `particles_at`. Paint subpixel circles under normal element/camera transforms. Give the emitter an explicit integer seed and bounded count.
-- [ ] Run targeted/full tests and compare repeated frame bytes across an intervening timestamp; commit.
+- [x] Add failing tests for `ParticleEmitter(..., seed=42).particles_at(2.5)` equality after `particles_at(0.1)`, bounds/wrap at arbitrary time, count <=400, and rejected negative/non-finite time.
+- [x] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing ParticleEmitter.
+- [x] Define immutable Particle descriptors. Generate each starting point/velocity/radius/alpha with local `Random(seed)` in stable index order; evaluate `((base + velocity*t) % extent)` in `particles_at`. Paint subpixel circles under normal element/camera transforms. Give the emitter an explicit integer seed and bounded count.
+- [x] Run targeted/full tests and compare repeated frame bytes across an intervening timestamp; commit.
 
 ## Task 3: Conservative frame finishing
 

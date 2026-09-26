@@ -11,7 +11,7 @@ from PIL import Image
 
 from .animation import MaskReveal, Reveal
 from .camera import CameraState
-from .primitives import Circle, Path as MotionPath, RadialLight, Rectangle, Text, partial_points
+from .primitives import Circle, ParticleEmitter, Path as MotionPath, RadialLight, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
 from .typography import layout_text, line_mask
@@ -77,12 +77,18 @@ def _paint_cinematic_background(context: cairo.Context, scene: PortraitScene, st
     context.paint()
 
 
-def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False) -> None:
+def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False, time: float) -> None:
     element = state.element
     x = 0.0 if local else state.x
     y = 0.0 if local else state.y
     if isinstance(element, MotionPath):
         _draw_path(context, state, style, x=x, y=y)
+        return
+    if isinstance(element, ParticleEmitter):
+        for particle in element.particles_at(time):
+            context.arc(x + particle.x, y + particle.y, particle.radius, 0, 2 * pi)
+            _set_color(context, element.color, state.opacity * particle.opacity)
+            context.fill()
         return
     if isinstance(element, RadialLight):
         center = _rgba(element.center_color, state.opacity * element.intensity)
@@ -151,6 +157,8 @@ def _element_bounds(state: EvaluatedElement, style: Style, *, local: bool) -> tu
         return x - element.radius, y - element.radius, x + element.radius, y + element.radius
     if isinstance(element, RadialLight):
         return x - element.radius, y - element.radius, x + element.radius, y + element.radius
+    if isinstance(element, ParticleEmitter):
+        return x - element.width / 2, y - element.height / 2, x + element.width / 2, y + element.height / 2
     if isinstance(element, MotionPath):
         xs = [point[0] for point in element.points]
         ys = [point[1] for point in element.points]
@@ -272,7 +280,7 @@ def render_frame(
             if isinstance(state.element, Text):
                 _draw_text(context, state, style, local=transformed)
             else:
-                _draw_geometry(context, state, style, local=transformed)
+                _draw_geometry(context, state, style, local=transformed, time=time)
         except Exception as exc:
             label = state.element.name or type(state.element).__name__
             raise RenderError(f'Failed to render element "{label}" at t={time:.3f}s: {exc}') from exc

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import hypot, isfinite
+from random import Random
 from typing import Literal
 
 
@@ -94,6 +95,66 @@ class RadialLight(Element):
                 int(color[1:], 16)
             except ValueError as exc:
                 raise ValueError(f"RadialLight {label} contains invalid hex digits") from exc
+
+
+@dataclass(frozen=True)
+class Particle:
+    x: float
+    y: float
+    radius: float
+    opacity: float
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class ParticleEmitter(Element):
+    width: float
+    height: float
+    count: int
+    seed: int
+    radius_range: tuple[float, float] = (1.5, 4.0)
+    velocity: tuple[float, float, float, float] = (-8.0, 8.0, -14.0, 4.0)
+    color: str = "#829EAD"
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not isfinite(self.width) or self.width <= 0:
+            raise ValueError(f"ParticleEmitter width must be finite and positive; got {self.width!r}")
+        if not isfinite(self.height) or self.height <= 0:
+            raise ValueError(f"ParticleEmitter height must be finite and positive; got {self.height!r}")
+        if not isinstance(self.count, int) or isinstance(self.count, bool) or not 1 <= self.count <= 400:
+            raise ValueError("ParticleEmitter count must be between 1 and 400")
+        if not isinstance(self.seed, int) or isinstance(self.seed, bool):
+            raise ValueError("ParticleEmitter seed must be an integer")
+        if len(self.radius_range) != 2 or not all(isfinite(v) and v > 0 for v in self.radius_range) or self.radius_range[0] > self.radius_range[1]:
+            raise ValueError("ParticleEmitter radius_range must be positive (min, max)")
+        if len(self.velocity) != 4 or not all(isfinite(v) for v in self.velocity) or self.velocity[0] > self.velocity[1] or self.velocity[2] > self.velocity[3]:
+            raise ValueError("ParticleEmitter velocity must be ordered (min_vx, max_vx, min_vy, max_vy)")
+        if not isinstance(self.color, str) or not self.color.startswith("#") or len(self.color) not in (7, 9):
+            raise ValueError("ParticleEmitter color must be #RRGGBB or #RRGGBBAA")
+        try:
+            int(self.color[1:], 16)
+        except ValueError as exc:
+            raise ValueError("ParticleEmitter color contains invalid hex digits") from exc
+
+    def particles_at(self, time: float) -> tuple[Particle, ...]:
+        if not isfinite(time) or time < 0:
+            raise ValueError(f"ParticleEmitter time must be finite and non-negative; got {time!r}")
+        random = Random(self.seed)
+        result = []
+        for _ in range(self.count):
+            start_x = random.uniform(0, self.width)
+            start_y = random.uniform(0, self.height)
+            vx = random.uniform(self.velocity[0], self.velocity[1])
+            vy = random.uniform(self.velocity[2], self.velocity[3])
+            radius = random.uniform(*self.radius_range)
+            opacity = random.uniform(0.3, 0.8)
+            result.append(Particle(
+                ((start_x + vx * time) % self.width) - self.width / 2,
+                ((start_y + vy * time) % self.height) - self.height / 2,
+                radius,
+                opacity,
+            ))
+        return tuple(result)
 
 
 @dataclass(frozen=True, eq=False)
