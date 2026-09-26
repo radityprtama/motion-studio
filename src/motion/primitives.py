@@ -74,6 +74,28 @@ class Circle(Element):
             raise ValueError("stroke_width must be finite and non-negative")
 
 
+@dataclass(frozen=True, eq=False, kw_only=True)
+class RadialLight(Element):
+    radius: float
+    center_color: str = "#D4A373AA"
+    edge_color: str = "#D4A37300"
+    intensity: float = 0.5
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not isfinite(self.radius) or self.radius <= 0:
+            raise ValueError(f"RadialLight radius must be finite and positive; got {self.radius!r}")
+        if not isfinite(self.intensity) or not 0 <= self.intensity <= 1:
+            raise ValueError("RadialLight intensity must be between 0 and 1")
+        for label, color in (("center_color", self.center_color), ("edge_color", self.edge_color)):
+            if not isinstance(color, str) or not color.startswith("#") or len(color) not in (7, 9):
+                raise ValueError(f"RadialLight {label} must be #RRGGBB or #RRGGBBAA")
+            try:
+                int(color[1:], 16)
+            except ValueError as exc:
+                raise ValueError(f"RadialLight {label} contains invalid hex digits") from exc
+
+
 @dataclass(frozen=True, eq=False)
 class Text(Element):
     value: str

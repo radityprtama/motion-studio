@@ -11,7 +11,7 @@ from PIL import Image
 
 from .animation import MaskReveal, Reveal
 from .camera import CameraState
-from .primitives import Circle, Path as MotionPath, Rectangle, Text, partial_points
+from .primitives import Circle, Path as MotionPath, RadialLight, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
 from .typography import layout_text, line_mask
@@ -38,6 +38,9 @@ def _set_color(context: cairo.Context, color: str, opacity: float) -> None:
 
 
 def _paint_background(context: cairo.Context, scene: PortraitScene, style: Style) -> None:
+    if style.background_treatment == "cinematic":
+        _paint_cinematic_background(context, scene, style)
+        return
     _set_color(context, style.background, 1)
     context.paint()
     random = Random(scene.seed)
@@ -55,12 +58,42 @@ def _paint_background(context: cairo.Context, scene: PortraitScene, style: Style
         context.stroke()
 
 
+def _paint_cinematic_background(context: cairo.Context, scene: PortraitScene, style: Style) -> None:
+    _set_color(context, style.background, 1)
+    context.paint()
+    gradient = cairo.RadialGradient(
+        scene.width * 0.48, scene.height * 0.42, 0,
+        scene.width * 0.48, scene.height * 0.42, scene.height * 0.75,
+    )
+    gradient.add_color_stop_rgba(0, *_rgba("#15283A"))
+    gradient.add_color_stop_rgba(0.55, *_rgba("#0D1C2B"))
+    gradient.add_color_stop_rgba(1, *_rgba(style.background))
+    context.set_source(gradient)
+    context.paint()
+    horizon = cairo.LinearGradient(0, scene.height * 0.55, 0, scene.height)
+    horizon.add_color_stop_rgba(0, 0, 0, 0, 0)
+    horizon.add_color_stop_rgba(1, 0, 0, 0, 0.2)
+    context.set_source(horizon)
+    context.paint()
+
+
 def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool = False) -> None:
     element = state.element
     x = 0.0 if local else state.x
     y = 0.0 if local else state.y
     if isinstance(element, MotionPath):
         _draw_path(context, state, style, x=x, y=y)
+        return
+    if isinstance(element, RadialLight):
+        center = _rgba(element.center_color, state.opacity * element.intensity)
+        edge = _rgba(element.edge_color, state.opacity * element.intensity)
+        glow = cairo.RadialGradient(x, y, 0, x, y, element.radius)
+        glow.add_color_stop_rgba(0, *center)
+        glow.add_color_stop_rgba(0.42, center[0], center[1], center[2], center[3] * 0.35)
+        glow.add_color_stop_rgba(1, *edge)
+        context.arc(x, y, element.radius, 0, 2 * pi)
+        context.set_source(glow)
+        context.fill()
         return
     if isinstance(element, Rectangle):
         left = x - element.width / 2 if element.anchor == "center" else x
@@ -115,6 +148,8 @@ def _element_bounds(state: EvaluatedElement, style: Style, *, local: bool) -> tu
         top = y - element.height / 2 if element.anchor == "center" else y
         return left, top, left + element.width, top + element.height
     if isinstance(element, Circle):
+        return x - element.radius, y - element.radius, x + element.radius, y + element.radius
+    if isinstance(element, RadialLight):
         return x - element.radius, y - element.radius, x + element.radius, y + element.radius
     if isinstance(element, MotionPath):
         xs = [point[0] for point in element.points]

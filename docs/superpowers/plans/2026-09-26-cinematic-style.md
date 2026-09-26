@@ -32,10 +32,10 @@ This session executes inline under the user's build authorization. No delegated 
 
 **Files:** Modify `src/motion/style.py`, `src/motion/primitives.py`, `src/motion/renderer.py`, `src/motion/__init__.py`; create `tests/unit/test_cinematic.py`.
 
-- [ ] Add a failing test: `get_style("cinematic").background == "#08121E"`, `RadialLight(x=0,y=0,radius=0,...)` raises, and a Cinematic still contains a soft gradient while the Blueprint baseline hash stays `a6a447d59d569b5f0622a02b7990aa4e3558c82766abf0413cdcf622eeb78cb9` at 360×640, t=2.
-- [ ] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing style/primitive.
-- [ ] Add `Style.background_treatment` and finishing strengths with Blueprint defaults retaining the current grid. Add CINEMATIC tokens. Implement RadialLight with validated colors/radius and Cairo RadialGradient color stops, and a Cinematic radial/horizon background painter. Preserve the existing `_paint_background` Blueprint branch byte-for-byte.
-- [ ] Run targeted and full tests; render a 360×640 light still for inspection; commit.
+- [x] Add a failing test: `get_style("cinematic").background == "#08121E"`, `RadialLight(x=0,y=0,radius=0,...)` raises, and a Cinematic still contains a soft gradient while the Blueprint baseline hash stays `a6a447d59d569b5f0622a02b7990aa4e3558c82766abf0413cdcf622eeb78cb9` at 360×640, t=2.
+- [x] Run `uv run pytest tests/unit/test_cinematic.py -q`; expect missing style/primitive.
+- [x] Add `Style.background_treatment` and finishing strengths with Blueprint defaults retaining the current grid. Add CINEMATIC tokens. Implement RadialLight with validated colors/radius and Cairo RadialGradient color stops, and a Cinematic radial/horizon background painter. Preserve the existing `_paint_background` Blueprint branch byte-for-byte.
+- [x] Run targeted and full tests; render a 360×640 light still for inspection; commit.
 
 ## Task 2: ParticleEmitter without simulation state
 

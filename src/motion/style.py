@@ -33,6 +33,9 @@ class Style:
     grid_color: str = "#527B93"
     grid_opacity: float = 1.0
     component_stroke: float = 4.0
+    background_treatment: str = "blueprint_grid"
+    grain_strength: float = 0.0
+    vignette_strength: float = 0.0
 
     def text_token(self, role: str) -> TypographyToken:
         tokens = {
@@ -92,10 +95,28 @@ BLUEPRINT_PAPER = Style(
     grid_opacity=0.45,
 )
 
+CINEMATIC = Style(
+    name="cinematic",
+    background="#08121E",
+    primary="#E8E4DC",
+    secondary="#829EAD",
+    accent="#D4A373",
+    sans_font=_FONT_DIR / "IBMPlexSans-Regular.ttf",
+    mono_font=_FONT_DIR / "IBMPlexMono-Regular.ttf",
+    headline_size=84,
+    body_size=50,
+    annotation_size=36,
+    background_treatment="cinematic",
+    grain_strength=0.035,
+    vignette_strength=0.24,
+)
+
 
 def get_style(name: str) -> Style:
     if name == "blueprint":
         return BLUEPRINT
     if name == "blueprint-paper":
         return BLUEPRINT_PAPER
-    raise ValueError(f"Unknown style {name!r}; available styles: blueprint, blueprint-paper")
+    if name == "cinematic":
+        return CINEMATIC
+    raise ValueError(f"Unknown style {name!r}; available styles: blueprint, blueprint-paper, cinematic")
