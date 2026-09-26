@@ -9,7 +9,8 @@ from random import Random
 import cairocffi as cairo
 from PIL import Image, ImageDraw, ImageFont
 
-from .primitives import Circle, Rectangle, Text
+from .animation import MaskReveal, Reveal
+from .primitives import Circle, Path as MotionPath, Rectangle, Text, partial_points
 from .scene import EvaluatedElement, PortraitScene
 from .style import Style, get_style
 
@@ -56,6 +57,9 @@ def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style
     element = state.element
     x = 0.0 if local else state.x
     y = 0.0 if local else state.y
+    if isinstance(element, MotionPath):
+        _draw_path(context, state, style, x=x, y=y)
+        return
     if isinstance(element, Rectangle):
         left = x - element.width / 2 if element.anchor == "center" else x
         top = y - element.height / 2 if element.anchor == "center" else y
@@ -78,6 +82,102 @@ def _draw_geometry(context: cairo.Context, state: EvaluatedElement, style: Style
         _set_color(context, stroke, state.opacity)
         context.set_line_width(element.stroke_width)
         context.stroke()
+
+
+def _draw_path(context: cairo.Context, state: EvaluatedElement, style: Style, *, x: float, y: float) -> None:
+    element = state.element
+    assert isinstance(element, MotionPath)
+    if state.draw_progress <= 0:
+        return
+    visible = partial_points(element.points, state.draw_progress, closed=element.closed)
+    context.new_path()
+    context.move_to(x + visible[0][0], y + visible[0][1])
+    for point_x, point_y in visible[1:]:
+        context.line_to(x + point_x, y + point_y)
+    if element.closed and state.draw_progress >= 1:
+        context.close_path()
+    if element.fill is not None and state.draw_progress >= 1:
+        _set_color(context, element.fill, state.opacity)
+        context.fill_preserve()
+    _set_color(context, element.stroke or style.primary, state.opacity)
+    context.set_line_width(element.stroke_width)
+    context.stroke()
+
+
+def _element_bounds(state: EvaluatedElement, style: Style, *, local: bool) -> tuple[float, float, float, float]:
+    element = state.element
+    x = 0.0 if local else state.x
+    y = 0.0 if local else state.y
+    if isinstance(element, Rectangle):
+        left = x - element.width / 2 if element.anchor == "center" else x
+        top = y - element.height / 2 if element.anchor == "center" else y
+        return left, top, left + element.width, top + element.height
+    if isinstance(element, Circle):
+        return x - element.radius, y - element.radius, x + element.radius, y + element.radius
+    if isinstance(element, MotionPath):
+        xs = [point[0] for point in element.points]
+        ys = [point[1] for point in element.points]
+        padding = element.stroke_width / 2 + 1
+        return x + min(xs) - padding, y + min(ys) - padding, x + max(xs) + padding, y + max(ys) + padding
+    if isinstance(element, Text):
+        font_path, size = style.font_for(element.role)
+        if not font_path.is_file():
+            raise FileNotFoundError(f"Bundled font {font_path} is missing; reinstall motion-studio")
+        font = ImageFont.truetype(font_path, size)
+        lines = _wrap_lines(element.value, font, element.max_width)
+        widths = [max(0, font.getbbox(line)[2] - font.getbbox(line)[0]) for line in lines if line]
+        widest = max(widths, default=0)
+        if element.anchor == "left":
+            left = x
+        elif element.anchor == "right":
+            left = x - widest
+        else:
+            left = x - widest / 2
+        line_step = size * element.line_height
+        height = (len(lines) - 1) * line_step + size
+        return left, y, left + widest, y + height
+    raise TypeError(f"Unsupported element {type(element).__name__}")
+
+
+def _clip_direction(context: cairo.Context, state: EvaluatedElement, style: Style, *, local: bool) -> None:
+    reveal = state.reveal
+    assert isinstance(reveal, Reveal)
+    left, top, right, bottom = _element_bounds(state, style, local=local)
+    amount = state.reveal_progress
+    width = right - left
+    height = bottom - top
+    if reveal.direction == "left":
+        context.rectangle(left, top, width * amount, height)
+    elif reveal.direction == "right":
+        context.rectangle(right - width * amount, top, width * amount, height)
+    elif reveal.direction == "top":
+        context.rectangle(left, top, width, height * amount)
+    else:
+        context.rectangle(left, bottom - height * amount, width, height * amount)
+    context.clip()
+
+
+def _clip_mask(context: cairo.Context, state: EvaluatedElement) -> None:
+    reveal = state.reveal
+    assert isinstance(reveal, MaskReveal)
+    mask = reveal.mask
+    amount = state.reveal_progress
+    matrix = context.get_matrix()
+    context.translate(mask.x, mask.y)
+    context.rotate(radians(mask.rotation))
+    context.scale(mask.scale_x, mask.scale_y)
+    if isinstance(mask, Rectangle):
+        width = mask.width * amount
+        height = mask.height * amount
+        if mask.anchor == "center":
+            context.rectangle(-width / 2, -height / 2, width, height)
+        else:
+            context.rectangle(0, 0, width, height)
+    else:
+        assert isinstance(mask, Circle)
+        context.arc(0, 0, mask.radius * amount, 0, 2 * pi)
+    context.clip()
+    context.set_matrix(matrix)
 
 
 def _wrap_lines(value: str, font: ImageFont.FreeTypeFont, max_width: float | None) -> list[str]:
@@ -167,15 +267,19 @@ def render_frame(
     context.scale(output_width / scene.width, output_height / scene.height)
     _paint_background(context, scene, style)
     for state in scene.elements_at(time):
-        if state.opacity <= 0:
+        if state.opacity <= 0 or (state.reveal is not None and state.reveal_progress <= 0):
             continue
         context.save()
         try:
+            if isinstance(state.reveal, MaskReveal):
+                _clip_mask(context, state)
             transformed = state.scale_x != 1 or state.scale_y != 1 or state.rotation != 0
             if transformed:
                 context.translate(state.x, state.y)
                 context.rotate(radians(state.rotation))
                 context.scale(state.scale_x, state.scale_y)
+            if isinstance(state.reveal, Reveal) and state.reveal_progress < 1:
+                _clip_direction(context, state, style, local=transformed)
             if isinstance(state.element, Text):
                 _draw_text(context, state, style, local=transformed)
             else:

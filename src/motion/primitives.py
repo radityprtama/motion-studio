@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import hypot, isfinite
 from typing import Literal
 
 
@@ -95,3 +95,55 @@ class Text(Element):
             raise ValueError("Text line_height must be finite and positive")
         if self.anchor not in ("left", "center", "right"):
             raise ValueError("Text anchor must be left, center, or right")
+
+
+def partial_points(
+    points: tuple[tuple[float, float], ...], amount: float, *, closed: bool = False
+) -> tuple[tuple[float, float], ...]:
+    """Return the portion of a polyline visible at a length fraction."""
+    segments = points + ((points[0],) if closed else ())
+    lengths = [hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(segments, segments[1:])]
+    total = sum(lengths)
+    if total <= 0:
+        raise ValueError("Path must have positive total length")
+    if amount <= 0:
+        return (points[0],)
+    if amount >= 1:
+        return segments
+    remaining = amount * total
+    visible = [points[0]]
+    for (start, end), length in zip(zip(segments, segments[1:]), lengths):
+        if length == 0:
+            continue
+        if remaining >= length:
+            visible.append(end)
+            remaining -= length
+            continue
+        fraction = remaining / length
+        visible.append((start[0] + (end[0] - start[0]) * fraction, start[1] + (end[1] - start[1]) * fraction))
+        break
+    return tuple(visible)
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class Path(Element):
+    points: tuple[tuple[float, float], ...]
+    closed: bool = False
+    stroke: str | None = None
+    stroke_width: float = 3.0
+    fill: str | None = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        points = tuple(tuple(point) for point in self.points)
+        object.__setattr__(self, "points", points)
+        if len(points) < 2:
+            raise ValueError("Path requires at least two points")
+        if any(len(point) != 2 or not all(isfinite(value) for value in point) for point in points):
+            raise ValueError("Path points must contain finite x and y coordinates")
+        if not isfinite(self.stroke_width) or self.stroke_width <= 0:
+            raise ValueError("Path stroke_width must be finite and positive")
+        if self.fill is not None and not self.closed:
+            raise ValueError("Path fill requires a closed path")
+        if sum(hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(points, points[1:])) == 0:
+            raise ValueError("Path must have positive total length")

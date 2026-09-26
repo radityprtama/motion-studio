@@ -6,9 +6,9 @@ from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
 
-from .animation import Animation
+from .animation import Animation, DrawPath, MaskReveal, Reveal
 from .composition import Node, expand
-from .primitives import LAYER_ORDER, Element
+from .primitives import LAYER_ORDER, Element, Path as MotionPath
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,9 @@ class EvaluatedElement:
     scale_x: float
     scale_y: float
     rotation: float
+    draw_progress: float
+    reveal_progress: float
+    reveal: Reveal | MaskReveal | None
 
 
 class PortraitScene:
@@ -81,6 +84,8 @@ class PortraitScene:
         for element, animation in assignments:
             if element not in self._elements:
                 raise ValueError("animate requires an element already added to the scene")
+            if isinstance(animation, DrawPath) and not isinstance(element, MotionPath):
+                raise ValueError("DrawPath requires a Path element")
             for channel in animation.channels:
                 track = staged.setdefault((element, channel), [])
                 for existing in track:
@@ -107,7 +112,7 @@ class PortraitScene:
         self._attach_many(assignments)
 
     def _property_at(self, element: Element, channel: str, time: float) -> float:
-        base = getattr(element, channel)
+        base = getattr(element, channel, 1.0)
         track = self._tracks.get((element, channel), [])
         if not track:
             return base
@@ -118,6 +123,19 @@ class PortraitScene:
             else:
                 break
         return selected.value(channel, time, base)
+
+    def _reveal_at(self, element: Element, time: float) -> Reveal | MaskReveal | None:
+        track = self._tracks.get((element, "reveal_progress"), [])
+        if not track:
+            return None
+        selected = track[0]
+        for animation in track:
+            if animation.start <= time:
+                selected = animation
+            else:
+                break
+        assert isinstance(selected, (Reveal, MaskReveal))
+        return selected
 
     def elements_at(self, time: float) -> list[EvaluatedElement]:
         if not isfinite(time) or not 0 <= time <= self.duration:
@@ -135,6 +153,9 @@ class PortraitScene:
                 scale_x=self._property_at(element, "scale_x", time),
                 scale_y=self._property_at(element, "scale_y", time),
                 rotation=self._property_at(element, "rotation", time),
+                draw_progress=self._property_at(element, "draw_progress", time),
+                reveal_progress=self._property_at(element, "reveal_progress", time),
+                reveal=self._reveal_at(element, time),
             )
             for _, element in ordered
         ]

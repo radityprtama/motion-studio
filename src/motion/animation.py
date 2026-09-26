@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import isfinite
 
+from .primitives import Circle, Rectangle
+
 
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
@@ -172,3 +174,53 @@ class Rotate(Animation):
         if channel != "rotation":
             raise ValueError(f"Rotate does not animate {channel!r}")
         return self.from_angle + (self.to_angle - self.from_angle) * self.amount(time)
+
+
+@dataclass(frozen=True, kw_only=True)
+class DrawPath(Animation):
+    @property
+    def channels(self) -> tuple[str, ...]:
+        return ("draw_progress",)
+
+    def value(self, channel: str, time: float, base: float) -> float:
+        if channel != "draw_progress":
+            raise ValueError(f"DrawPath does not animate {channel!r}")
+        return self.amount(time)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Reveal(Animation):
+    direction: str = "left"
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.direction not in ("left", "right", "top", "bottom"):
+            raise ValueError("Reveal direction must be left, right, top, or bottom")
+
+    @property
+    def channels(self) -> tuple[str, ...]:
+        return ("reveal_progress",)
+
+    def value(self, channel: str, time: float, base: float) -> float:
+        if channel != "reveal_progress":
+            raise ValueError(f"Reveal does not animate {channel!r}")
+        return self.amount(time)
+
+
+@dataclass(frozen=True, kw_only=True)
+class MaskReveal(Animation):
+    mask: Rectangle | Circle
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not isinstance(self.mask, (Rectangle, Circle)):
+            raise TypeError("MaskReveal mask must be a Rectangle or Circle")
+
+    @property
+    def channels(self) -> tuple[str, ...]:
+        return ("reveal_progress",)
+
+    def value(self, channel: str, time: float, base: float) -> float:
+        if channel != "reveal_progress":
+            raise ValueError(f"MaskReveal does not animate {channel!r}")
+        return self.amount(time)
