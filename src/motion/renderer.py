@@ -140,10 +140,14 @@ def _draw_path(context: cairo.Context, state: EvaluatedElement, style: Style, *,
         context.close_path()
     if element.fill is not None and state.draw_progress >= 1:
         _set_color(context, element.fill, state.opacity)
-        context.fill_preserve()
-    _set_color(context, element.stroke or style.primary, state.opacity)
-    context.set_line_width(element.stroke_width)
-    context.stroke()
+        if element.stroke is not None:
+            context.fill_preserve()
+        else:
+            context.fill()
+    if element.stroke is not None or element.fill is None:
+        _set_color(context, element.stroke or style.primary, state.opacity)
+        context.set_line_width(element.stroke_width)
+        context.stroke()
 
 
 def _element_bounds(state: EvaluatedElement, style: Style, *, local: bool) -> tuple[float, float, float, float]:

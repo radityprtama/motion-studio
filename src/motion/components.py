@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import hypot, isfinite
+from math import ceil, hypot, isfinite
+from random import Random
 from types import MappingProxyType
 from typing import Mapping
 
-from .layout import Box
-from .primitives import Circle, Element, Path, Rectangle, Text
+from .layout import Box, grid
+from .primitives import Circle, Element, Path, RadialLight, Rectangle, Text
 from .scene import PortraitScene
 from .style import Style, get_style
 from .typography import layout_text
@@ -239,3 +240,95 @@ def Timeline(
     xs = [x - 9, x + (len(labels) - 1) * gap + 9 if direction == "horizontal" else x + 9]
     ys = [y - 9, y + (len(labels) - 1) * gap + 9 if direction == "vertical" else y + 9]
     return Component(parts, Box(min(xs + [box[0] for box in label_boxes]), min(ys + [box[1] for box in label_boxes]), max(xs + [box[2] for box in label_boxes]), max(ys + [box[3] for box in label_boxes])), anchors)
+
+
+def Orb(
+    *, x: float, y: float, diameter: float, style: str = "cinematic", name: str | None = None,
+) -> Component:
+    """A restrained lit sphere assembled from independently animated parts."""
+    _number(diameter, "Orb diameter", 60)
+    colors = get_style(style)
+    prefix = _prefix(name, "orb", x, y)
+    radius = diameter / 2
+    halo_radius = diameter * 1.18
+    parts = {
+        "halo": RadialLight(x=x, y=y, radius=halo_radius, center_color=colors.secondary + "88", edge_color=colors.secondary + "00", intensity=.55, name=f"{prefix}:halo", layer="environment"),
+        "disc": Circle(x=x, y=y, radius=radius, fill=colors.background, name=f"{prefix}:disc"),
+        "rim": Circle(x=x, y=y, radius=radius, fill=None, stroke=colors.secondary, stroke_width=max(2, diameter * .012), opacity=.72, name=f"{prefix}:rim"),
+        "highlight": RadialLight(x=x - diameter * .13, y=y - diameter * .15, radius=diameter * .38, center_color=colors.accent + "99", edge_color=colors.accent + "00", intensity=.38, name=f"{prefix}:highlight", layer="foreground"),
+    }
+    return Component(parts, Box(x - halo_radius, y - halo_radius, x + halo_radius, y + halo_radius), {"center": (x, y)})
+
+
+def Person(
+    *, x: float, y: float, height: float, style: str = "cinematic", name: str | None = None,
+    pose_variant: int = 0, opacity: float = 1.0, color: str | None = None,
+) -> Component:
+    """A simple head-and-body silhouette, centered on its visual mass."""
+    _number(height, "Person height", 24)
+    if pose_variant not in (0, 1, 2):
+        raise ValueError("Person pose_variant must be 0, 1, or 2")
+    colors = get_style(style)
+    ink = color or colors.secondary
+    prefix = _prefix(name, "person", x, y)
+    lean = (pose_variant - 1) * height * .035
+    shoulder = height * .17
+    hem = height * .13
+    top = -height * .15
+    bottom = height * .47
+    body = Path(
+        x=x, y=y,
+        points=((lean - shoulder, top), (lean + shoulder, top), (lean + shoulder * 1.25, top + height * .13),
+                (lean + hem, bottom), (lean - hem, bottom), (lean - shoulder * 1.25, top + height * .13)),
+        closed=True, fill=ink, stroke=None, opacity=opacity, name=f"{prefix}:body",
+    )
+    head = Circle(x=x + lean, y=y - height * .29, radius=height * .095, fill=ink, opacity=opacity, name=f"{prefix}:head")
+    return Component(
+        {"body": body, "head": head},
+        Box(x - height * .26, y - height * .39, x + height * .26, y + height * .47),
+        {"center": (x, y), "head": (head.x, head.y)},
+    )
+
+
+def Crowd(
+    *, box: Box, count: int, columns: int, seed: int,
+    highlighted: tuple[int, ...] | list[int] = (), style: str = "cinematic", name: str = "crowd",
+) -> Component:
+    """A stable grid of silhouettes with optional accent overlays."""
+    if not isinstance(count, int) or isinstance(count, bool) or not 1 <= count <= 400:
+        raise ValueError("Crowd count must be between 1 and 400")
+    if not isinstance(columns, int) or isinstance(columns, bool) or not 1 <= columns <= count:
+        raise ValueError("Crowd columns must be between 1 and count")
+    if not isinstance(seed, int) or isinstance(seed, bool):
+        raise ValueError("Crowd seed must be an integer")
+    selected = set(highlighted)
+    if len(selected) != len(highlighted) or any(not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < count for index in selected):
+        raise ValueError("Crowd highlighted indices must be unique integers in [0, count)")
+    rows = ceil(count / columns)
+    cells = grid(box, rows=rows, columns=columns)
+    if cells[0].width < 30 or cells[0].height < 40:
+        raise ValueError(f"Crowd Box is too small for {count} people in {columns} columns; cell is {cells[0].width:g}x{cells[0].height:g}")
+    prefix = _prefix(name, "crowd", box.center[0], box.center[1])
+    random = Random(seed)
+    colors = get_style(style)
+    parts: dict[str, Element] = {}
+    anchors: dict[str, tuple[float, float]] = {}
+    positions = []
+    for index, cell in enumerate(cells[:count]):
+        jitter_x = random.uniform(-min(4, cell.width * .04), min(4, cell.width * .04))
+        jitter_y = random.uniform(-min(3, cell.height * .035), min(3, cell.height * .035))
+        scale = random.uniform(.9, 1.05)
+        x, y = cell.center[0] + jitter_x, cell.center[1] + jitter_y
+        height = min(cell.height * .73, cell.width * .9) * scale
+        pose = random.randrange(3)
+        positions.append((index, x, y, height, pose))
+        base = Person(x=x, y=y, height=height, pose_variant=pose, style=style, opacity=.48, color=colors.secondary, name=f"{prefix}:person:{index}")
+        for key, part in base.parts.items():
+            parts[f"person:{index}:{key}"] = part
+        anchors[f"person:{index}"] = (x, y)
+    for index, x, y, height, pose in positions:
+        if index in selected:
+            accent = Person(x=x, y=y, height=height, pose_variant=pose, style=style, opacity=1, color=colors.accent, name=f"{prefix}:highlight:{index}")
+            for key, part in accent.parts.items():
+                parts[f"highlight:{index}:{key}"] = part
+    return Component(parts, box, anchors)

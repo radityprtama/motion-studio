@@ -59,10 +59,10 @@ This session executes inline under the user's build authorization. No delegated 
 
 **Files:** Modify `src/motion/primitives.py`, `src/motion/renderer.py`, `src/motion/components.py`, `src/motion/__init__.py`; create `tests/unit/test_crowd.py`.
 
-- [ ] Add failing tests for Orb `halo/disc/rim/highlight` handles; Person `head/body` and fixed pose variants; Crowd 10×10 row-major anchors, 17 highlighted indices, deterministic offsets, invalid indices/overflow; filled Path with no stroke has no default outline.
-- [ ] Run `uv run pytest tests/unit/test_crowd.py -q`; expect missing factories.
-- [ ] Implement Orb from RadialLight/Circle parts. Implement Person from Circle and closed filled Path; when Path has fill and no stroke, draw only fill. Implement Crowd using `Box` and the pure grid helper, with local Random(seed) scale/offset variation bounded within cells. Return named parts and anchors for each person.
-- [ ] Render Orb and 17/100 Crowd stills at 360×640, inspect spacing/contrast, run all tests, and commit.
+- [x] Add failing tests for Orb `halo/disc/rim/highlight` handles; Person `head/body` and fixed pose variants; Crowd 10×10 row-major anchors, 17 highlighted indices, deterministic offsets, invalid indices/overflow; filled Path with no stroke has no default outline.
+- [x] Run `uv run pytest tests/unit/test_crowd.py -q`; expect missing factories.
+- [x] Implement Orb from RadialLight/Circle parts. Implement Person from Circle and closed filled Path; when Path has fill and no stroke, draw only fill. Implement Crowd using `Box` and the pure grid helper, with local Random(seed) scale/offset variation bounded within cells. Return named parts and anchors for each person.
+- [x] Render Orb and 17/100 Crowd stills at 360×640, inspect spacing/contrast, run all tests, and commit.
 
 ## Task 5: Visual proof and final validation
 
