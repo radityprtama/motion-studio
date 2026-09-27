@@ -7,16 +7,20 @@ import importlib.util
 from pathlib import Path
 import sys
 
+from .config import ProjectConfig, load_config
 from .export import FFmpegError, render_video
+from .inspect import sample_times
+from .memory import MemoryStore
 from .renderer import RenderError
 from .scene import PortraitScene
+from .style import BLUEPRINT, BLUEPRINT_PAPER, CINEMATIC
 
 
 class SceneLoadError(RuntimeError):
     pass
 
 
-def load_scene(path: Path) -> PortraitScene:
+def load_scene(path: Path, config: ProjectConfig | None = None) -> PortraitScene:
     resolved = path.resolve()
     if not resolved.is_file():
         raise FileNotFoundError(f"Scene file {resolved} does not exist")
@@ -28,9 +32,18 @@ def load_scene(path: Path) -> PortraitScene:
         spec.loader.exec_module(module)
     except Exception as exc:
         raise SceneLoadError(f"Could not execute scene file {resolved}: {exc}") from exc
-    scene = getattr(module, "scene", None)
+    factory = getattr(module, "build_scene", None)
+    if factory is not None:
+        if not callable(factory):
+            raise SceneLoadError(f"Scene file {resolved} has a non-callable build_scene")
+        try:
+            scene = factory(config or ProjectConfig())
+        except Exception as exc:
+            raise SceneLoadError(f"build_scene failed in {resolved}: {exc}") from exc
+    else:
+        scene = getattr(module, "scene", None)
     if not isinstance(scene, PortraitScene):
-        raise SceneLoadError(f"Scene file {resolved} must export a PortraitScene named 'scene'")
+        raise SceneLoadError(f"Scene file {resolved} must export a PortraitScene named 'scene' or build_scene(config)")
     return scene
 
 
@@ -74,9 +87,10 @@ def _progress():
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="motion", description="Render deterministic Python motion scenes")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("still", "preview", "render"):
+    for name in ("still", "preview", "render", "inspect"):
         command = commands.add_parser(name)
         command.add_argument("scene", type=Path)
+        command.add_argument("--config", type=Path)
         command.add_argument("--output", type=Path)
         command.add_argument("--resolution")
         command.add_argument("--width", type=int)
@@ -84,8 +98,24 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--overwrite", action="store_true")
         if name == "still":
             command.add_argument("--time", type=float, required=True)
+        elif name == "inspect":
+            command.add_argument("--times", help="comma-separated seconds; defaults to six samples")
+            command.add_argument("--columns", type=int, default=3)
         else:
             command.add_argument("--fps", type=int)
+    commands.add_parser("styles", help="list available visual styles")
+    commands.add_parser("examples", help="list bundled source examples")
+    memory = commands.add_parser("memory", help="search saved scene examples")
+    memory_commands = memory.add_subparsers(dest="memory_command", required=True)
+    search = memory_commands.add_parser("search")
+    search.add_argument("--root", type=Path, default=Path("memory"))
+    search.add_argument("--style")
+    search.add_argument("--scene-type")
+    search.add_argument("--concept", action="append", default=[])
+    search.add_argument("--technique", action="append", default=[])
+    search.add_argument("--tag", action="append", default=[])
+    search.add_argument("--limit", type=int, default=5)
+    search.add_argument("--min-quality", type=float, default=.5)
     return parser
 
 
@@ -93,17 +123,44 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
-        scene = load_scene(args.scene)
-        default_size = (360, 640) if args.command == "preview" else (scene.width, scene.height)
+        if args.command == "styles":
+            for style in (BLUEPRINT, BLUEPRINT_PAPER, CINEMATIC):
+                print(f"{style.name}\t{style.background_treatment}")
+            return 0
+        if args.command == "examples":
+            root = Path(__file__).resolve().parent / "examples"
+            if not root.is_dir():
+                root = Path(__file__).resolve().parents[2] / "examples"
+            for path in sorted(root.rglob("*.py")) if root.is_dir() else ():
+                print(path.relative_to(root))
+            return 0
+        if args.command == "memory":
+            matches = MemoryStore(args.root).search(
+                style=args.style, scene_type=args.scene_type, concepts=tuple(args.concept),
+                techniques=tuple(args.technique), tags=tuple(args.tag), limit=args.limit,
+                min_quality=args.min_quality,
+            )
+            for match in matches:
+                print(f"{match.item.id}\t{match.score:.2f}\t{match.item.style}\t{match.item.scene_type}\t{match.item.quality:.2f}")
+            return 0
+        config = load_config(args.config, scene_path=args.scene)
+        scene = load_scene(args.scene, config)
+        if args.command == "preview":
+            default_size = (config.preview.width, config.preview.height)
+        elif args.command == "inspect":
+            default_size = (max(1, config.preview.width * 3 // 4), max(1, config.preview.height * 3 // 4))
+        else:
+            default_size = (scene.width, scene.height)
         width, height = _dimensions(args, default_size)
         default_output = {
             "still": Path(".build/still.png"),
             "preview": Path(".build/preview.mp4"),
             "render": Path(".build/final.mp4"),
+            "inspect": Path(".build/contact-sheet.png"),
         }[args.command]
         output = args.output or default_output
-        fps = 15 if args.command == "preview" else scene.fps
-        if args.command != "still" and args.fps is not None:
+        fps = config.preview.fps if args.command == "preview" else scene.fps
+        if args.command in ("preview", "render") and args.fps is not None:
             fps = args.fps
         print(
             f"Scene: {args.scene} | style: {scene.style} | duration: {scene.duration:g}s | "
@@ -112,6 +169,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         if args.command == "still":
             result = scene.render_still(time=args.time, output=output, width=width, height=height, overwrite=args.overwrite)
+        elif args.command == "inspect":
+            times = tuple(float(value.strip()) for value in args.times.split(",")) if args.times else sample_times(scene)
+            result = scene.render_contact_sheet(output=output, times=times, width=width, height=height, columns=args.columns, overwrite=args.overwrite)
         else:
             result = render_video(
                 scene, output=output, width=width, height=height,

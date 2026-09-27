@@ -1,0 +1,20 @@
+{
+  "id": "request-flow-blueprint",
+  "style": "blueprint",
+  "scene_type": "process",
+  "concepts": [
+    "request",
+    "service",
+    "flow"
+  ],
+  "techniques": [
+    "path-drawing",
+    "component-reveal"
+  ],
+  "tags": [
+    "technical",
+    "portrait"
+  ],
+  "quality": 0.82,
+  "feedback": []
+}

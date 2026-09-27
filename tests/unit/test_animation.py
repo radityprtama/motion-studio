@@ -1,6 +1,8 @@
 import pytest
 
-from motion.animation import FadeIn, FadeOut, Move, ease, progress
+from motion.animation import FadeIn, FadeOut, Keyframe, Keyframes, Move, ease, progress
+from motion.primitives import Circle
+from motion.scene import PortraitScene
 
 
 def test_progress_boundaries() -> None:
@@ -35,3 +37,19 @@ def test_invalid_animation_values() -> None:
         Move()
     with pytest.raises(ValueError, match="easing"):
         FadeIn(easing="unknown")
+
+
+def test_keyframes_are_direct_time_and_validate_channels() -> None:
+    motion = Keyframes(channel="x", points=(Keyframe(0, 0), Keyframe(.5, 100), Keyframe(1, 50)), start=2, duration=2)
+    assert motion.value("x", 2, 0) == 0
+    assert motion.value("x", 3, 0) == 100
+    assert motion.value("x", 3.5, 0) == 75
+    assert motion.value("x", 4, 0) == 50
+    scene = PortraitScene(duration=5)
+    dot = scene.add(Circle(x=0, y=960, radius=20))
+    scene.animate(dot, motion)
+    assert scene.elements_at(3.5)[0].x == 75
+    with pytest.raises(ValueError, match="strictly increasing"):
+        Keyframes(channel="x", points=(Keyframe(0, 0), Keyframe(.5, 1), Keyframe(.5, 2), Keyframe(1, 3)))
+    with pytest.raises(ValueError, match="opacity"):
+        Keyframes(channel="opacity", points=(Keyframe(0, 0), Keyframe(1, 2)))

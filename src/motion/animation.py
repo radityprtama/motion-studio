@@ -69,6 +69,49 @@ class Animation:
         return ease(self.easing, progress(time, start=self.start, duration=self.duration))
 
 
+@dataclass(frozen=True)
+class Keyframe:
+    at: float
+    value: float
+
+    def __post_init__(self) -> None:
+        if not isfinite(self.at) or not 0 <= self.at <= 1 or not isfinite(self.value):
+            raise ValueError("keyframe needs normalized time in [0, 1] and finite value")
+
+
+@dataclass(frozen=True, kw_only=True)
+class Keyframes(Animation):
+    channel: str
+    points: tuple[Keyframe, ...]
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.channel not in ("x", "y", "scale_x", "scale_y", "rotation", "opacity"):
+            raise ValueError("Keyframes channel must be x, y, scale_x, scale_y, rotation, or opacity")
+        if len(self.points) < 2 or self.points[0].at != 0 or self.points[-1].at != 1:
+            raise ValueError("Keyframes need at least two points starting at 0 and ending at 1")
+        if any(b.at <= a.at for a, b in zip(self.points, self.points[1:])):
+            raise ValueError("Keyframes times must be strictly increasing")
+        if self.channel in ("scale_x", "scale_y") and any(point.value <= 0 for point in self.points):
+            raise ValueError("Keyframes scale values must be positive")
+        if self.channel == "opacity" and any(not 0 <= point.value <= 1 for point in self.points):
+            raise ValueError("Keyframes opacity values must be between 0 and 1")
+
+    @property
+    def channels(self) -> tuple[str, ...]:
+        return (self.channel,)
+
+    def value(self, channel: str, time: float, base: float) -> float:
+        if channel != self.channel:
+            raise ValueError(f"Keyframes does not animate {channel!r}")
+        amount = progress(time, start=self.start, duration=self.duration)
+        for left, right in zip(self.points, self.points[1:]):
+            if amount <= right.at:
+                local = ease(self.easing, (amount - left.at) / (right.at - left.at))
+                return left.value + (right.value - left.value) * local
+        return self.points[-1].value
+
+
 @dataclass(frozen=True, kw_only=True)
 class Move(Animation):
     from_x: float | None = None

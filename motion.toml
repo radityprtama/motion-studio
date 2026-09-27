@@ -1,0 +1,12 @@
+[project]
+default_style = "blueprint"
+
+[render]
+width = 1080
+height = 1920
+fps = 30
+
+[preview]
+width = 360
+height = 640
+fps = 15

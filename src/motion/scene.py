@@ -5,12 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .config import ProjectConfig
 
 from .animation import Animation, DrawPath, MaskReveal, Reveal
+from .audio import AudioTimeline
+from .effects import Effect
 from .camera import Camera
 from .composition import Node, expand
 from .layout import Box
-from .primitives import LAYER_ORDER, Element, Path as MotionPath
+from .primitives import LAYER_ORDER, Element, Line, Path as MotionPath
 
 
 @dataclass(frozen=True)
@@ -28,6 +34,13 @@ class EvaluatedElement:
 
 
 class PortraitScene:
+    @classmethod
+    def from_config(cls, config: ProjectConfig, *, duration: float, **overrides: object) -> PortraitScene:
+        """Construct in design coordinates; explicit scene settings win over project defaults."""
+        values: dict[str, object] = dict(duration=duration, style=config.default_style, width=config.render.width, height=config.render.height, fps=config.render.fps)
+        values.update(overrides)
+        return cls(**values)
+
     def __init__(
         self,
         *,
@@ -59,6 +72,8 @@ class PortraitScene:
         self.safe_bottom = safe_bottom
         self.content_margin = content_margin
         self.camera = Camera(x=width / 2, y=height / 2)
+        self.audio = AudioTimeline()
+        self.effects: list[Effect] = []
         self._elements: list[Element] = []
         self._names: set[str] = set()
         self._tracks: dict[tuple[Element, str], list[Animation]] = {}
@@ -86,13 +101,17 @@ class PortraitScene:
         self._elements.append(element)
         return element
 
+    def add_effect(self, effect: Effect) -> None:
+        """Append a deterministic frame effect in explicit application order."""
+        self.effects.append(effect)
+
     def _attach_many(self, assignments: list[tuple[Element, Animation]]) -> None:
         staged = {key: track.copy() for key, track in self._tracks.items()}
         for element, animation in assignments:
             if element not in self._elements:
                 raise ValueError("animate requires an element already added to the scene")
-            if isinstance(animation, DrawPath) and not isinstance(element, MotionPath):
-                raise ValueError("DrawPath requires a Path element")
+            if isinstance(animation, DrawPath) and not isinstance(element, (MotionPath, Line)):
+                raise ValueError("DrawPath requires a Path or Line element")
             for channel in animation.channels:
                 track = staged.setdefault((element, channel), [])
                 for existing in track:
@@ -171,6 +190,11 @@ class PortraitScene:
         from .export import render_still
 
         return render_still(self, time=time, output=Path(output), width=width, height=height, overwrite=overwrite)
+
+    def render_contact_sheet(self, *, output: str | Path, times: tuple[float, ...] | None = None, width: int = 270, height: int = 480, columns: int = 3, overwrite: bool = False) -> Path:
+        from .inspect import render_contact_sheet, sample_times
+
+        return render_contact_sheet(self, times=times if times is not None else sample_times(self), output=output, width=width, height=height, columns=columns, overwrite=overwrite)
 
     def render_preview(self, *, output: str | Path, width: int = 360, height: int = 640, fps: int = 15, overwrite: bool = False) -> Path:
         from .export import render_video

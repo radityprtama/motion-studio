@@ -82,7 +82,7 @@ def _wrap(value: str, font: ImageFont.FreeTypeFont, width: float | None, spacing
 
 def layout_text(text: Text, style: Style, *, local: bool = False, x: float | None = None, y: float | None = None) -> TextLayout:
     token = style.text_token(text.role)
-    path = style.font_path(token.family, text.font_weight or token.weight)
+    path = style.font_path(text.font_family or token.family, text.font_weight or token.weight)
     font = ImageFont.truetype(path, text.font_size or token.size)
     spacing = text.letter_spacing
     anchor_x = 0.0 if local else (text.x if x is None else x)

@@ -1,0 +1,23 @@
+{
+  "id": "git-history-blueprint",
+  "style": "blueprint",
+  "scene_type": "graph",
+  "concepts": [
+    "history",
+    "branching",
+    "snapshot"
+  ],
+  "techniques": [
+    "path-drawing",
+    "camera-push",
+    "scene-continuity"
+  ],
+  "tags": [
+    "git",
+    "portrait"
+  ],
+  "quality": 0.94,
+  "feedback": [
+    "User review: the video result is good."
+  ]
+}

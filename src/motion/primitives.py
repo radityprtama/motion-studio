@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import hypot, isfinite
 from random import Random
+from pathlib import Path as FilePath
 from typing import Literal
 
 
@@ -73,6 +74,73 @@ class Circle(Element):
             raise ValueError("circle radius must be finite and positive")
         if not isfinite(self.stroke_width) or self.stroke_width < 0:
             raise ValueError("stroke_width must be finite and non-negative")
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class RoundedRectangle(Rectangle):
+    radius: float = 20.0
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not isfinite(self.radius) or not 0 <= self.radius <= min(self.width, self.height) / 2:
+            raise ValueError("rounded rectangle radius must fit within its bounds")
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class Ellipse(Element):
+    radius_x: float
+    radius_y: float
+    fill: str | None = None
+    stroke: str | None = None
+    stroke_width: float = 2.0
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not all(isfinite(value) and value > 0 for value in (self.radius_x, self.radius_y)):
+            raise ValueError("ellipse radii must be finite and positive")
+        if not isfinite(self.stroke_width) or self.stroke_width < 0:
+            raise ValueError("ellipse stroke_width must be finite and non-negative")
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class Line(Element):
+    dx: float
+    dy: float
+    stroke: str | None = None
+    stroke_width: float = 3.0
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not all(isfinite(value) for value in (self.dx, self.dy)) or (self.dx == 0 and self.dy == 0):
+            raise ValueError("line offset must be finite and nonzero")
+        if not isfinite(self.stroke_width) or self.stroke_width <= 0:
+            raise ValueError("line stroke_width must be finite and positive")
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class Image(Element):
+    source: FilePath
+    width: float
+    height: float
+    anchor: Literal["center", "top_left"] = "center"
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        object.__setattr__(self, "source", FilePath(self.source))
+        if not all(isfinite(value) and value > 0 for value in (self.width, self.height)):
+            raise ValueError("image width and height must be finite and positive")
+        if self.anchor not in ("center", "top_left"):
+            raise ValueError("image anchor must be center or top_left")
+
+
+@dataclass(frozen=True, eq=False, kw_only=True)
+class SVG(Image):
+    """A local, self-contained SVG rendered through CairoSVG."""
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.source.suffix.lower() != ".svg":
+            raise ValueError("SVG source must have a .svg extension")
 
 
 @dataclass(frozen=True, eq=False, kw_only=True)
@@ -166,6 +234,7 @@ class Text(Element):
     anchor: Literal["left", "center", "right"] = "center"
     line_height: float | None = None
     font_size: int | None = None
+    font_family: Literal["sans", "mono"] | None = None
     font_weight: Literal["regular", "semibold"] | None = None
     letter_spacing: float = 0.0
 
@@ -183,6 +252,8 @@ class Text(Element):
             raise ValueError("Text font_size must be a positive integer")
         if self.font_weight not in (None, "regular", "semibold"):
             raise ValueError("Text font_weight must be regular or semibold")
+        if self.font_family not in (None, "sans", "mono"):
+            raise ValueError("Text font_family must be sans or mono")
         if not isfinite(self.letter_spacing):
             raise ValueError("Text letter_spacing must be finite")
         if self.anchor not in ("left", "center", "right"):

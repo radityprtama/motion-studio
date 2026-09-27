@@ -1,0 +1,20 @@
+{
+  "id": "object-grid-cinematic",
+  "style": "cinematic",
+  "scene_type": "grid",
+  "concepts": [
+    "repetition",
+    "focus",
+    "scale"
+  ],
+  "techniques": [
+    "procedural-repetition",
+    "selective-highlight"
+  ],
+  "tags": [
+    "portrait",
+    "objects"
+  ],
+  "quality": 0.87,
+  "feedback": []
+}

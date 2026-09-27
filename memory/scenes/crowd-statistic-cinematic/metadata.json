@@ -1,0 +1,20 @@
+{
+  "id": "crowd-statistic-cinematic",
+  "style": "cinematic",
+  "scene_type": "crowd",
+  "concepts": [
+    "proportion",
+    "group",
+    "scale"
+  ],
+  "techniques": [
+    "procedural-repetition",
+    "highlight-reveal"
+  ],
+  "tags": [
+    "statistics",
+    "portrait"
+  ],
+  "quality": 0.88,
+  "feedback": []
+}

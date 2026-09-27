@@ -15,6 +15,7 @@ def test_roles_and_overrides() -> None:
     layout = layout_text(text, style)
     assert layout.font.size == 45
     assert "SemiBold" in layout.font_path.name
+    assert "Mono" in layout_text(Text("Branch", x=500, y=400, role="title", font_family="mono"), style).font_path.name
     assert layout.lines[0].width > layout_text(Text("Branch", x=500, y=400, role="title", font_size=45), style).lines[0].width
 
 
@@ -33,6 +34,8 @@ def test_invalid_typography_is_rejected() -> None:
         Text("bad", x=0, y=0, font_size=0)
     with pytest.raises(ValueError, match="weight"):
         Text("bad", x=0, y=0, font_weight="heavy")
+    with pytest.raises(ValueError, match="family"):
+        Text("bad", x=0, y=0, font_family="serif")
     with pytest.raises(ValueError, match="role"):
         Text("bad", x=0, y=0, role="unknown")
 
